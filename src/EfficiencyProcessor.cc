@@ -624,6 +624,8 @@ void EfficiencyProcessor::end()
 	layers.clear() ;
 
 	file->Write() ;
+
+	file->Purge() ;
 	file->Close() ;
 
 	std::cout << "_goodTrackCounter " << _goodTrackCounter << std::endl ;
