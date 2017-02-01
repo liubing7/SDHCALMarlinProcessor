@@ -4,6 +4,7 @@ import lfc2 as lfc
 
 import os
 import sys
+from subprocess import Popen, PIPE
 from os import path
 import time
 
@@ -46,7 +47,7 @@ while True :
 	if entry == None :
 		break
 
-	if qbar + '_' + delta + '_' + d in entry.d_name :
+	if qbar + '_' + delta + '_' + d + '.slcio' == entry.d_name :
 		fileList.append(entry.d_name)
 
 print 'File List :'
@@ -81,7 +82,7 @@ os.environ["MARLIN_DLL"] = '/gridgroup/ilc/garillot/SDHCALMarlinProcessor/lib/li
 
 
 a = EfficiencyProcessor.Params()
-a.collectionName = 'HcalEndcapAnalog'
+a.collectionName = 'HCALEndcapAnalog'
 a.thresholds = '0.114 0.14 0.155714 0.171429 0.187143 0.202857 0.218571 0.234286 0.25 0.265714 0.281429 0.298571 0.314286 0.33 0.345714 0.361429 0.377143 0.392857 0.408571 0.424286 0.4 0.6125 0.825 1.0375 1.2375 1.45 1.6625 1.875 2.0875 2.3 2.5 2.7125 2.925 3.1375 3.35 3.5625 3.7625 3.975 4.1875 4.29448 5.33742 6.38037 7.48466 8.52761 9.57055 10.6135 11.6564 12.6994 13.8037 14.8466 15.8896 16.9325 17.9755 19.0184 20.0613 21.1656 22.2086 23.2515'
 
 EfficiencyProcessor.launch(a , fileList)
@@ -89,17 +90,17 @@ EfficiencyProcessor.launch(a , fileList)
 
 outputDir = '/grid/calice/SDHCAL/garillot/PolyaStudies/MulResults'
 
-output = 'map_' + qbar + '_' + delta + '_' + d + '.root'
+outputFile = 'map_' + qbar + '_' + delta + '_' + d + '.root'
 
 
-os.system('mv map.root ' + output)
+os.system('mv map.root ' + outputFile)
 
 #Upload files
 
 counter = 0
 success = False
 while not success and counter < 50 :
-	p = Popen( ['/gridgroup/ilc/garillot/uploadOnGrid.py' , file , dir] )
+	p = Popen( ['/gridgroup/ilc/garillot/uploadOnGrid.py' , outputFile , outputDir] )
 	output, error = p.communicate()
 	counter = counter + 1
 	if p.returncode != 0 :
@@ -115,7 +116,7 @@ if not success :
 #os.system('/gridgroup/ilc/garillot/uploadOnGrid.py ' + output + ' ' + outputDir)
 
 
-os.system('rm ' + output)
+os.system('rm ' + outputFile)
 for file in fileList :
 	os.system('rm ' + file)
 

@@ -4,7 +4,7 @@ import os
 
 class Params :
 	def __init__(self) :
-		self.collectionName = 'HcalEndcap'
+		self.collectionName = 'HCALEndcap'
 		self.cosThetaLimit = 0.9
 		self.thresholds = '1.0 2.0 3.0'
 
