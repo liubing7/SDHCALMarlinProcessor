@@ -13,7 +13,8 @@ echo " .... Marlin process SDHCAL asic processor"
 #COLLECTION="HCALEndcap"
 
 #FILEPATH="/home/garillot/files/DATA/TRIVENT/thrScan"
-FILEPATH="/home/garillot/files/DATA/TRIVENT/SPS_Oct2015/163"
+#FILEPATH="/home/garillot/files/DATA/TRIVENT/SPS_Oct2015/163"
+FILEPATH="/home/garillot/files/DATA/TRIVENT/SPS_Oct2015/214"
 FILELIST=`ls ${FILEPATH} | grep -F TDHCAL_${run}`
 COLLECTION="SDHCAL_HIT"
 
@@ -57,6 +58,6 @@ EOF
 Marlin ${XMLFILENAME}
 rm ${XMLFILENAME}
 
-mv ${OUTPUT} /home/garillot/files/PolyaScan/DATA
+#mv ${OUTPUT} /home/garillot/files/PolyaScan/DATA
 
 

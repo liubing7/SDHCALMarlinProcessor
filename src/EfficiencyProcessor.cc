@@ -440,6 +440,13 @@ void EfficiencyProcessor::processEvent( LCEvent * evt )
 
 				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96)
 					continue ;
+
+				if (hit->getEnergy() < thresholds.at(0) )
+				{
+					std::cout << "toto" << std::endl ;
+					continue ;
+				}
+
 				caloobject::CaloHit *aHit = new caloobject::CaloHit(cellID,vec,hit->getEnergy(),hit->getTime() , posShift) ;
 				hitMap[cellID[2]].push_back(aHit) ;
 			}
