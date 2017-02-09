@@ -1,8 +1,8 @@
-#ifndef AnalogEfficiencyProcessor_h
-#define AnalogEfficiencyProcessor_h
+#ifndef EfficiencyVsAngleProcessor_h
+#define EfficiencyVsAngleProcessor_h
 
-#include "marlin/Processor.h"
-#include "lcio.h"
+#include <marlin/Processor.h>
+#include <lcio.h>
 #include <string>
 #include <cstring>
 #include <EVENT/CalorimeterHit.h>
@@ -13,6 +13,7 @@
 #include "CaloObject/CaloGeom.h"
 #include "CaloObject/CaloHit.h"
 #include "CaloObject/Asic.h"
+
 #include "Algorithm/Cluster.h"
 #include "Algorithm/Tracking.h"
 #include "Algorithm/ClusteringHelper.h"
@@ -20,24 +21,25 @@
 #include "Algorithm/Efficiency.h"
 #include "Algorithm/AsicKeyFinder.h"
 
+#include "CaloObject/Layer.h"
+
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1D.h>
 #include <TH2D.h>
-#include <TGraphErrors.h>
 
 using namespace lcio ;
 using namespace marlin ;
 
-class AnalogEfficiencyProcessor : public Processor
-{
+
+class EfficiencyVsAngleProcessor : public Processor {
 
 	public :
 
-		virtual Processor*  newProcessor() { return new AnalogEfficiencyProcessor ; }
+		virtual Processor*  newProcessor() { return new EfficiencyVsAngleProcessor ; }
 
 
-		AnalogEfficiencyProcessor() ;
+		EfficiencyVsAngleProcessor() ;
 
 		/** Called at the begin of the job before anything is read.
    * Use to initialize the processor, e.g. book histograms.
@@ -65,9 +67,9 @@ class AnalogEfficiencyProcessor : public Processor
 		void clearVec() ;
 		void DoTracking() ;
 		inline int findDifID(int key) { return _difList.at( key/1000*3 + 2-key%1000/12/4 ) ; }
-//		inline int findAsicID(int key){return sdhcal_asic_table[4*(key%1000/12) + key%1000%12%4];}
 
-	protected:
+
+	protected :
 
 		int _nRun ;
 		int _nEvt ;
@@ -80,7 +82,7 @@ class AnalogEfficiencyProcessor : public Processor
 		std::map<int,std::vector<caloobject::CaloHit*> > hitMap ;
 
 		/*--------------------Global parameters--------------------*/
-		int _nActiveLayers;
+		int _nActiveLayers ;
 		int numElements;
 		LCCollection * col;
 		int _nAsicX;
@@ -95,7 +97,7 @@ class AnalogEfficiencyProcessor : public Processor
 		algorithm::ClusteringHelper *algo_ClusteringHelper;
 		algorithm::Tracking *algo_Tracking;
 		algorithm::InteractionFinder *algo_InteractionFinder;
-		algorithm::Efficiency* algo_Efficiency;
+		algorithm::Efficiency* algo_Efficiency ;
 		algorithm::AsicKeyFinder *algo_AsicKeyFinder;
 		/*------------------------------------------------------------------------------*/
 
@@ -122,8 +124,29 @@ class AnalogEfficiencyProcessor : public Processor
 		/*--------------------Root output object--------------------*/
 		std::string outputRootName ;
 		TFile* file ;
+		TTree* tree ;
 
 
+		TH2D* mulAngleHist ;
+		TH2D* eff1AngleHist ;
+		TH2D* eff2AngleHist ;
+		TH2D* eff3AngleHist ;
+
+		TH2D* trackPositionHist ;
+
+		int layerID ;
+		int difID ;
+		int asicID ;
+		int padID ;
+		double multiplicity ;
+		double multiplicityError ;
+
+		std::vector<double> efficiencies ;
+		std::vector<double> efficienciesError ;
+
+		int nTracks ;
+
+		std::vector<double> position ;
 } ;
 
-#endif //AnalogEfficiencyProcessor_h
+#endif //EfficiencyVsAngleProcessor_h

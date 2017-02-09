@@ -124,7 +124,7 @@ EfficiencyProcessor.launch(a , fileList)
 
 
 
-outputFile = 'srm://lyogrid06.in2p3.fr/dpm/in2p3.fr/home/calice/garillot/PolyaStudies/MulStudies/' + a.outputFileName
+outputFile = 'srm://lyogrid06.in2p3.fr/dpm/in2p3.fr/home/calice/garillot/PolyaStudies/MulResults/' + a.outputFileName
 
 #outputSlcio = str(polyaQ) + '_' + str(polyaD) + '_' + str(d) + '.slcio'
 
