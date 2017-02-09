@@ -38,8 +38,8 @@ inputFilePath = inputDir + '/' + inputFileName
 
 
 #Download file
-print 'Try to Download ' + inputFile
-source = inputFile
+print 'Try to Download ' + inputFilePath
+source = inputFilePath
 destination = 'file:' + inputFileName
 try:
 	r = ctx.filecopy(params, source, destination)
