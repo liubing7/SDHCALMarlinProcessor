@@ -9,6 +9,8 @@
 // ----- include for verbosity dependend logging ---------
 #include "marlin/VerbosityLevels.h"
 #include <string.h>
+
+#include "CaloObject/CaloTrack.h"
 using namespace lcio ;
 using namespace marlin ;
 
@@ -315,6 +317,13 @@ void EfficiencyVsAngleProcessor::init()
 	tree->Branch("Ntrack" , &nTracks) ;
 	tree->Branch("Position" , &position) ;
 
+	nTracksAngleVec = std::vector<int>(100 , 0) ;
+	mulAngleVec = std::vector<double>(100 , 0.0) ;
+	eff1AngleVec = std::vector<double>(100 , 0.0) ;
+	eff2AngleVec = std::vector<double>(100 , 0.0) ;
+	eff3AngleVec = std::vector<double>(100 , 0.0) ;
+
+
 	mulAngleHist = new TH2D("mulAngleHist" , "mulAngleHist" , 100 , 0 , 1 , 100 , 0 , 4) ;
 	eff1AngleHist = new TH2D("eff1AngleHist" , "eff1AngleHist" , 100 , 0 , 1 , 100 , 0 , 1) ;
 	eff2AngleHist = new TH2D("eff2AngleHist" , "eff2AngleHist" , 100 , 0 , 1 , 100 , 0 , 0.5) ;
@@ -350,7 +359,7 @@ void EfficiencyVsAngleProcessor::init()
 	{
 		caloobject::Layer* aLayer = new caloobject::SDHCALLayer(static_cast<int>(k) , _difList.at(3*k+2) , _difList.at(3*k+1) , _difList.at(k)) ;
 		aLayer->setPosition( CLHEP::Hep3Vector(10.408 , 10.408 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
-		aLayer->buildAsics() ;
+//		aLayer->buildAsics() ;
 		aLayer->setThresholds(thresholds) ;
 		layers.push_back(aLayer) ;
 	}
@@ -414,7 +423,31 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 
 		if ( algo_Efficiency->isTrack() )
 		{
-			layers.at(K)->update( algo_Efficiency->getExpectedPosition() , algo_Efficiency->getGoodCluster() ) ;
+			caloobject::CaloTrack* track = algo_Efficiency->getTrack() ;
+			caloobject::CaloCluster* cluster = algo_Efficiency->getGoodCluster() ;
+
+			unsigned int cosTheta = static_cast<unsigned int>( std::abs( 100*track->getCosTheta() ) ) ;
+//			std::cout << cosTheta << std::endl ;
+
+			if (cosTheta >= 100) //for binning
+				cosTheta = 99 ;
+
+			nTracksAngleVec.at(cosTheta)++ ;
+
+			if ( cluster )
+			{
+//				std::cout << cluster << std::endl ;
+				mulAngleVec.at(cosTheta) += cluster->getHits().size() ;
+				float maxThr = cluster->getMaxEnergy() ;
+
+				if ( maxThr >= thresholds.at(0) )
+					eff1AngleVec.at(cosTheta)++ ;
+				if ( maxThr >= thresholds.at(1) )
+					eff2AngleVec.at(cosTheta)++ ;
+				if ( maxThr >= thresholds.at(2) )
+					eff3AngleVec.at(cosTheta)++ ;
+			}
+
 			trackPositionHist->Fill( algo_Efficiency->getExpectedPosition().x() , algo_Efficiency->getExpectedPosition().y() ) ;
 		}
 	}
@@ -491,140 +524,19 @@ void EfficiencyVsAngleProcessor::end()
 {
 	file->cd() ;
 
-	file->WriteObject( &thresholds , "Thresholds" ) ;
-
-	int globalNTrack = 0 ;
-	std::vector<double> globalEff(thresholds.size() , 0.0) ;
-	std::vector<double> globalEffErr(thresholds.size() , 0.0) ;
-
-	double globalMul = 0 ;
-	double globalMulErr = 0 ;
-	int nOkLayersForMul = 0 ;
-
-	for( std::vector<caloobject::Layer*>::const_iterator layIt = layers.begin() ; layIt != layers.end() ; ++layIt)
+	for ( unsigned int i = 0 ; i < 100 ; ++i )
 	{
-		layerID = (*layIt)->getID() ;
-
-		AsicMap asics = (*layIt)->getAsics() ;
-		for( AsicMap::const_iterator asicIt = asics.begin() ; asicIt != asics.end() ; ++asicIt)
-		{
-			difID = asicIt->second->getDifID() ;
-			asicID = asicIt->second->getID() ;
-
-			PadMap pads = asicIt->second->getPads() ;
-			for( PadMap::const_iterator padIt = pads.begin() ; padIt != pads.end() ; ++padIt)
-			{
-				padID = padIt->second->getID() ;
-
-				nTracks = padIt->second->getNTrack() ;
-
-				efficiencies = padIt->second->getEfficiencies() ;
-				efficienciesError = padIt->second->getEfficienciesError() ;
-
-				multiplicity = padIt->second->getMultiplicity() ;
-				multiplicityError = padIt->second->getMultiplicityError() ;
-
-				position.clear() ;
-				position.push_back( padIt->second->getPosition().x() ) ;
-				position.push_back( padIt->second->getPosition().y() ) ;
-				position.push_back( padIt->second->getPosition().z() ) ;
-
-				tree->Fill() ;
-
-			} //pad loop
-
-			//glocal values for asic
-			padID = -1 ;
-
-			nTracks = asicIt->second->getNTrack() ;
-
-			efficiencies = asicIt->second->getEfficiencies() ;
-			efficienciesError = asicIt->second->getEfficienciesError() ;
-
-			multiplicity = asicIt->second->getMultiplicity() ;
-			multiplicityError = asicIt->second->getMultiplicityError() ;
-
-			position.clear() ;
-			position.push_back( asicIt->second->getPosition().x() ) ;
-			position.push_back( asicIt->second->getPosition().y() ) ;
-			position.push_back( asicIt->second->getPosition().z() ) ;
-
-			tree->Fill() ;
-
-		} //asic loop
-
-		//glocal values for layer
-		asicID = -1 ;
-		padID = -1 ;
-		difID = -1 ;
-
-		nTracks = (*layIt)->getNTrack() ;
-
-		efficiencies = (*layIt)->getEfficiencies() ;
-		efficienciesError = (*layIt)->getEfficienciesError() ;
-
-		multiplicity = (*layIt)->getMultiplicity() ;
-		multiplicityError = (*layIt)->getMultiplicityError() ;
-
-		position.clear() ;
-		position.push_back( (*layIt)->getPosition().x() ) ;
-		position.push_back( (*layIt)->getPosition().y() ) ;
-		position.push_back( (*layIt)->getPosition().z() ) ;
-
-		tree->Fill() ;
-
-		if ( efficiencies.at(0) > 0 )
-		{
-			globalMul += multiplicity ;
-			globalMulErr += 1.0/(multiplicityError*multiplicityError) ;
-			nOkLayersForMul++ ;
-		}
-
-		globalNTrack += nTracks ;
-
-		for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
-		{
-			globalEff.at(i) += efficiencies.at(i) ;
-			globalEffErr.at(i) += 1.0/( efficienciesError.at(i)*efficienciesError.at(i) ) ;
-		}
-
-		std::cout << "Layer " << layerID << "        mul : " << multiplicity << " +- " << multiplicityError << std::endl ;
-
-	} //layer loop
-
-	globalMul /= nOkLayersForMul ;
-
-	std::cout << "Global mulPerLayer : " << globalMul << std::endl ;
-
-	//global
-	layerID = -1 ;
-	difID = -1 ;
-	asicID = -1 ;
-	padID = -1 ;
-
-	nTracks = globalNTrack ;
-
-	efficiencies = std::vector<double>( thresholds.size() , 0.0 ) ;
-	efficienciesError = std::vector<double>( thresholds.size() , 0.0 ) ;
-
-	for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
-	{
-		efficiencies.at(i) = ( globalEff.at(i)/layers.size() ) ;
-		efficienciesError.at(i) = std::sqrt( 1.0/globalEffErr.at(i) ) ;
+		mulAngleVec.at(i) /= eff1AngleVec.at(i) ;
+		std::cout << "  CosTheta : " << 1.0*i/100 << "  mul : " << mulAngleVec.at(i) << std::endl ;
+		eff1AngleVec.at(i) /= nTracksAngleVec.at(i) ;
+		eff2AngleVec.at(i) /= nTracksAngleVec.at(i) ;
+		eff3AngleVec.at(i) /= nTracksAngleVec.at(i) ;
 	}
 
-
-	multiplicity = globalMul ;
-	multiplicityError = std::sqrt(1.0/globalMulErr) ;
-
-
-	position.clear() ;
-	position.push_back( layers.at(0)->getPosition().x()  ) ;
-	position.push_back( layers.at(0)->getPosition().y()  ) ;
-	position.push_back( layers.at(0)->getPosition().z()  ) ;
-
-
-	tree->Fill() ;
+	for ( unsigned int i = 0 ; i < 100 ; ++i )
+	{
+		std::cout << "  CosTheta : " << 1.0*i/100 << "  eff3 : " << eff3AngleVec.at(i) << std::endl ;
+	}
 
 
 	delete algo_Cluster ;

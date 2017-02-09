@@ -132,6 +132,12 @@ class EfficiencyVsAngleProcessor : public Processor {
 		TH2D* eff2AngleHist ;
 		TH2D* eff3AngleHist ;
 
+		std::vector<int> nTracksAngleVec ;
+		std::vector<double> mulAngleVec ;
+		std::vector<double> eff1AngleVec ;
+		std::vector<double> eff2AngleVec ;
+		std::vector<double> eff3AngleVec ;
+
 		TH2D* trackPositionHist ;
 
 		int layerID ;
