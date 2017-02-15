@@ -376,11 +376,14 @@ void EfficiencyProcessor::DoTracking()
 
 	if( NULL != track )
 	{
-		_goodTrackCounter++ ;
+
 		algo_InteractionFinder->Run(clusters , track->getTrackParameters()) ;
 
 		if( algo_InteractionFinder->FindInteraction() == false )
+		{
+			_goodTrackCounter++ ;
 			LayerProperties(clusters) ;
+		}
 	}
 	file->cd() ;
 
@@ -438,14 +441,11 @@ void EfficiencyProcessor::processEvent( LCEvent * evt )
 				if ( cellID[2] > _nActiveLayers )
 					continue ;
 
-				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96)
+				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96 )
 					continue ;
 
 				if (hit->getEnergy() < thresholds.at(0) )
-				{
-					std::cout << "toto" << std::endl ;
 					continue ;
-				}
 
 				caloobject::CaloHit *aHit = new caloobject::CaloHit(cellID,vec,hit->getEnergy(),hit->getTime() , posShift) ;
 				hitMap[cellID[2]].push_back(aHit) ;
