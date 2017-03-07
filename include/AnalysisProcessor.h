@@ -83,7 +83,7 @@ class AnalysisProcessor : public Processor {
 		std::vector<std::string> _hcalCollections;
 
 	private:
-		std::map<int,std::vector<caloobject::CaloHit*> > hitMap ;
+		std::map<int,HitVec> hitMap ;
 		std::vector<caloobject::CaloCluster2D*> clusterVec ;
 
 		/*--------------------Global parameters--------------------*/
@@ -131,6 +131,9 @@ class AnalysisProcessor : public Processor {
 
 		/*---------------------------------------------------------------------*/
 
+		std::vector<float> thresholdsFloat ;
+		std::vector<double> thresholds ;
+
 		double _timeCut ;
 		unsigned long long _prevBCID ;
 		unsigned long long _bcidRef ;
@@ -150,10 +153,17 @@ class AnalysisProcessor : public Processor {
 
 		bool cerenkovTag ;
 
+		int runNumber ;
+		float energy ;
+
 		int nHit ;
 		int nHit1 ;
 		int nHit2 ;
 		int nHit3 ;
+		int nHough ;
+		int nHough1 ;
+		int nHough2 ;
+		int nHough3 ;
 		int nLayer ;
 		int nInteractingLayer ;
 		int nCluster ;

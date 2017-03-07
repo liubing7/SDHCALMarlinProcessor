@@ -37,7 +37,7 @@ def download(input , output) :
 			time.sleep(20)
 
 		dlCounter = dlCounter + 1
-		
+
 	if isOK :
 		print 'Download succeeded !'
 	else :

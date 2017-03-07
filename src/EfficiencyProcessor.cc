@@ -357,6 +357,8 @@ void EfficiencyProcessor::processRunHeader( LCRunHeader* run )
 
 void EfficiencyProcessor::DoTracking()
 {
+//	std::cout << "DoTracking()" << std::endl ;
+
 	std::vector<caloobject::CaloCluster2D*> clusters ;
 	for(std::map<int,std::vector<caloobject::CaloHit*> >::iterator it = hitMap.begin() ; it != hitMap.end() ; ++it)
 		algo_Cluster->Run(it->second , clusters) ;
@@ -376,7 +378,6 @@ void EfficiencyProcessor::DoTracking()
 
 	if( NULL != track )
 	{
-
 		algo_InteractionFinder->Run(clusters , track->getTrackParameters()) ;
 
 		if( algo_InteractionFinder->FindInteraction() == false )
@@ -394,6 +395,8 @@ void EfficiencyProcessor::DoTracking()
 
 void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*> &clusters)
 {
+//	std::cout << "LayerProperties()" << std::endl ;
+
 	int trackBegin = (*clusters.begin())->getLayerID() ;
 	int trackEnd = (*(clusters.end()-1))->getLayerID() ;
 	if ( trackBegin == 1 )
@@ -405,7 +408,10 @@ void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*
 
 	for( int K = trackBegin ; K <= trackEnd ; K++ )
 	{
+//		std::cout << "K : " << K << std::endl ;
+//		std::cout << "toto" << std::endl ;
 		algo_Efficiency->Run(layers.at(K) , clusters) ;
+//		std::cout << "titi" << std::endl ;
 
 		if ( algo_Efficiency->isTrack() )
 		{
@@ -438,7 +444,7 @@ void EfficiencyProcessor::processEvent( LCEvent * evt )
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
 				int cellID[] = {IDdecoder(hit)["I"],IDdecoder(hit)["J"],IDdecoder(hit)["K-1"]} ;
 
-				if ( cellID[2] > _nActiveLayers )
+				if ( cellID[2] >= _nActiveLayers )
 					continue ;
 
 				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96 )
@@ -447,7 +453,7 @@ void EfficiencyProcessor::processEvent( LCEvent * evt )
 				if (hit->getEnergy() < thresholds.at(0) )
 					continue ;
 
-				caloobject::CaloHit *aHit = new caloobject::CaloHit(cellID,vec,hit->getEnergy(),hit->getTime() , posShift) ;
+				caloobject::CaloHit* aHit = new caloobject::CaloHit(cellID,vec,hit->getEnergy(),hit->getTime() , posShift) ;
 				hitMap[cellID[2]].push_back(aHit) ;
 			}
 
@@ -493,18 +499,22 @@ void EfficiencyProcessor::end()
 	double globalMulErr = 0 ;
 	int nOkLayersForMul = 0 ;
 
-	for( std::vector<caloobject::Layer*>::const_iterator layIt = layers.begin() ; layIt != layers.end() ; ++layIt)
+	for( std::vector<caloobject::Layer*>::const_iterator layIt = layers.begin() ; layIt != layers.end() ; ++layIt )
 	{
 		layerID = (*layIt)->getID() ;
 
+		//test
+//		if ( layerID == 1 || layerID == 34 )
+//			continue ;
+
 		AsicMap asics = (*layIt)->getAsics() ;
-		for( AsicMap::const_iterator asicIt = asics.begin() ; asicIt != asics.end() ; ++asicIt)
+		for( AsicMap::const_iterator asicIt = asics.begin() ; asicIt != asics.end() ; ++asicIt )
 		{
 			difID = asicIt->second->getDifID() ;
 			asicID = asicIt->second->getID() ;
 
 			PadMap pads = asicIt->second->getPads() ;
-			for( PadMap::const_iterator padIt = pads.begin() ; padIt != pads.end() ; ++padIt)
+			for( PadMap::const_iterator padIt = pads.begin() ; padIt != pads.end() ; ++padIt )
 			{
 				padID = padIt->second->getID() ;
 
@@ -602,6 +612,7 @@ void EfficiencyProcessor::end()
 	for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
 	{
 		efficiencies.at(i) = ( globalEff.at(i)/layers.size() ) ;
+//		efficiencies.at(i) = ( globalEff.at(i)/(layers.size()-2) ) ;
 		efficienciesError.at(i) = std::sqrt( 1.0/globalEffErr.at(i) ) ;
 	}
 
@@ -611,9 +622,9 @@ void EfficiencyProcessor::end()
 
 
 	position.clear() ;
-	position.push_back( layers.at(0)->getPosition().x()  ) ;
-	position.push_back( layers.at(0)->getPosition().y()  ) ;
-	position.push_back( layers.at(0)->getPosition().z()  ) ;
+	position.push_back( layers.at(0)->getPosition().x() ) ;
+	position.push_back( layers.at(0)->getPosition().y() ) ;
+	position.push_back( layers.at(0)->getPosition().z() ) ;
 
 
 	tree->Fill() ;

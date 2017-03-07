@@ -10,6 +10,9 @@
 // ----- include for verbosity dependend logging ---------
 #include "marlin/VerbosityLevels.h"
 #include <string.h>
+
+#include "EnergyOfRun.h"
+
 using namespace lcio ;
 using namespace marlin ;
 
@@ -34,6 +37,11 @@ AnalysisProcessor::AnalysisProcessor() : Processor("AnalysisProcessor")
 								"File name for the root output",
 								outputRootName,
 								std::string("toto.root") );
+
+	registerProcessorParameter( "nRun" ,
+								"Number of run",
+								runNumber,
+								0 ) ;
 
 	registerProcessorParameter( "NActiveLayers" ,
 								"Number of active layers",
@@ -67,15 +75,24 @@ AnalysisProcessor::AnalysisProcessor() : Processor("AnalysisProcessor")
 
 
 	std::vector<float> vec ;
-	std::vector<float> _posShift ;
-	vec.push_back(499.584) ;
-	vec.push_back(499.584) ;
+	vec.push_back(499.584f) ;
+	vec.push_back(499.584f) ;
 	vec.push_back(0) ;
 	// registerProcessorParameter( "PositionShift" ,
 	// 			      "3 Vector to shift to have the right (0,0,0) position",
 	// 			      _posShift,
 	// 			      vec );
-	posShift= CLHEP::Hep3Vector( 0.0, 0.0, 0.0 ) ;
+	posShift = CLHEP::Hep3Vector( 0.0, 0.0, 0.0 ) ;
+
+	float thr[] = { 1.0f , 2.0f , 3.0f } ; //default value for semi-digital hits
+	std::vector<float> thresholdsVec(thr, thr + sizeof(thr) / sizeof(float) ) ;
+
+	std::sort( thresholdsVec.begin() , thresholdsVec.end() ) ;
+
+	registerProcessorParameter( "Thresholds" ,
+								"Vector of thresholds",
+								thresholdsFloat,
+								thresholdsVec ) ;
 
 	AlgorithmRegistrationParameters();
 }
@@ -87,76 +104,76 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	registerProcessorParameter( "Cluster::MaxTransversalCellID" ,
 								"Maximum difference between two hits cellID (0 and 1) to build a cluster",
 								m_ClusterParameterSetting.maxTransversal,
-								(int) 1 );
+								1 );
 
 	registerProcessorParameter( "Cluster::MaxLongitudinalCellID" ,
 								"Maximum difference between two hits cellID (2) to build a cluster",
 								m_ClusterParameterSetting.maxLongitudinal,
-								(int) 0 );
+								0 );
 
 	registerProcessorParameter( "Cluster::UseDistanceInsteadCellID" ,
 								"Boolean to know if clustering algorithms uses distance instead of cellID to cluster hits together",
 								m_ClusterParameterSetting.useDistanceInsteadCellID,
-								(bool) false );
+								false );
 
 	registerProcessorParameter( "Cluster::MaxTransversalDistance" ,
 								"Maximum transversal distance (in mm) between two hits to gathered them in one cluster",
 								m_ClusterParameterSetting.maxTransversalDistance,
-								(float) 11.0 );
+								11.0f );
 
 	registerProcessorParameter( "Cluster::MaxLongitudinalDistance" ,
 								"Maximum longitudinal distance (in mm) between two hits to gathered them in one cluster",
 								m_ClusterParameterSetting.maxLongitudinalDistance,
-								(float) 27.0 );
+								27.0f );
 
 	/*------------algorithm::ClusteringHelper------------*/
 	registerProcessorParameter( "ClusteringHelper::LongitudinalDistanceForIsolation" ,
 								"Minimum longitudinal distance (in mm) between one hits and its neighbours to decide if it is isolated",
 								m_ClusteringHelperParameterSetting.longitudinalDistance,
-								(float) 100.0 );
+								100.0f );
 
 	registerProcessorParameter( "ClusteringHelper::TransversalDistanceDistanceForIsolation" ,
 								"Minimum transversal distance (in mm) between one hits and its neighbours to decide if it is isolated",
 								m_ClusteringHelperParameterSetting.transversalDistance,
-								(float) 200.0 );
+								200.0f );
 
 	/*------------algorithm::Tracking-----------*/
 	registerProcessorParameter( "Tracking::ChiSquareLimit" ,
 								"Maximum value of tracking fit chi2 to construct a track",
 								m_TrackingParameterSetting.chiSquareLimit,
-								(float) 100.0 );
+								100.0f );
 
 	registerProcessorParameter( "Tracking::MaxTransverseRatio" ,
 								"Maximum value of transverse ratio to construct a track",
 								m_TrackingParameterSetting.maxTransverseRatio,
-//								(float) 0.05 );
-								(float) 1 );
+								0.05f );
+	//								(float) 1 );
 
 	registerProcessorParameter( "Tracking::CosThetaLimit" ,
 								"Minimum value of cos(Theta) to accept the track",
 								m_TrackingParameterSetting.cosThetaLimit,
-								(float) 0.0 );
+								0.0f );
 
 	registerProcessorParameter( "Tracking::PrintDebug" ,
 								"Boolean to know if debug if printed",
 								m_TrackingParameterSetting.printDebug,
-								(bool) false );
+								false );
 
 	/*------------algorithm::Efficiency-----------*/
 	registerProcessorParameter( "Efficiency::MaxRadius" ,
 								"Maximum distance parameter to find a hit to consider the layer as efficient",
 								m_EfficiencyParameterSetting.maxRadius,
-								(float) 25.0 );
+								25.0f );
 
 	registerProcessorParameter( "Efficiency::SDHCALReadout" ,
 								"Boolean to know if the detector used the semi digital readout",
 								m_EfficiencyParameterSetting.semiDigitalReadout,
-								(bool) true );
+								true );
 
 	registerProcessorParameter( "Efficiency::PrintDebug" ,
 								"If true, Efficiency algorithm will print some debug information",
 								m_EfficiencyParameterSetting.printDebug,
-								(bool) false );
+								false );
 
 	m_EfficiencyParameterSetting.trackingParams=m_TrackingParameterSetting;
 
@@ -164,49 +181,50 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	registerProcessorParameter( "InteractionFinder::MinSize" ,
 								"Minimum cluster size for to define an interaction point",
 								m_InteractionFinderParameterSetting.minSize,
-								(int) 4 );
+								4 );
 
 	registerProcessorParameter( "InteractionFinder::MaxRadius" ,
 								"Maximum transversal distance to look for clusters",
 								m_InteractionFinderParameterSetting.maxRadius,
-								(float) 50.0 );
+								50.0f );
 
 	registerProcessorParameter( "InteractionFinder::MaxDepth" ,
 								"Maximum depth (number of layers) to look for clusters",
 								m_InteractionFinderParameterSetting.maxDepth,
-								(int) 4 );
+								4 );
 
 	registerProcessorParameter( "InteractionFinder::MinNumberOfCluster" ,
 								"Minimum number of found clusters (big enough) after the interaction point",
 								m_InteractionFinderParameterSetting.minNumberOfCluster,
-								(int) 3 );
+								3 );
 
 	registerProcessorParameter( "InteractionFinder::UseAnalogEnergy" ,
 								"Boolean to know if interaction finder algo should use cluster energy of cluster number of hits",
 								m_InteractionFinderParameterSetting.useAnalogEnergy,
-								(bool) false );
+								false );
 
 	registerProcessorParameter( "InteractionFinder::PrintDebug" ,
 								"Boolean to know if debug if printed",
 								m_InteractionFinderParameterSetting.printDebug,
-								(bool) false );
+								false );
+
 	/*------------caloobject::CaloGeom------------*/
 	registerProcessorParameter( "Geometry::NLayers" ,
 								"Number of layers",
 								m_CaloGeomSetting.nLayers,
-								(int) 48 );
+								48 );
 	registerProcessorParameter( "Geometry::NPixelsPerLayer" ,
 								"Number of pixels per layer (assume square geometry)",
 								m_CaloGeomSetting.nPixelsPerLayer,
-								(int) 96 );
+								96 );
 	registerProcessorParameter( "Geometry::PixelSize" ,
 								"Pixel size (assume square pixels)",
 								m_CaloGeomSetting.pixelSize,
-								(float) 10.408 );
+								10.408f );
 
 	std::vector<float> vec;
-	vec.push_back(0.0);
-	vec.push_back(1000.0);
+	vec.push_back(10.408f) ;
+	vec.push_back(97*10.408f) ;
 	registerProcessorParameter( "Geometry::DetectorTransverseSize" ,
 								"Define the detector transverse size used by efficiency algorithm (vector size must be 2 or 4; if 2 -> first value is min, second value is max; if 4 -> two first values define x edges , two last values define y edges) ",
 								edges,
@@ -241,37 +259,38 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	registerProcessorParameter( "AsicKeyFinder::NPadX" ,
 								"Number of pads in x direction per layer",
 								m_AsicKeyFinderParameterSetting.nPadX,
-								(int) 96 );
+								96 );
 
 	registerProcessorParameter( "AsicKeyFinder::NPadY" ,
 								"Number of pads in x direction per layer",
 								m_AsicKeyFinderParameterSetting.nPadY,
-								(int) 96 );
+								96 );
 
 	registerProcessorParameter( "AsicKeyFinder::AsicNPad" ,
 								"number of pads in x or y direction per asic (assuming a square)",
 								m_AsicKeyFinderParameterSetting.asicNPad,
-								(int) 8 );
+								8 );
 
 	registerProcessorParameter( "AsicKeyFinder::LayerGap" ,
 								"Gap size (in mm) between 2 layers",
 								m_AsicKeyFinderParameterSetting.layerGap,
-								(float) 26.131 );
+								26.131f );
 
 	registerProcessorParameter( "AsicKeyFinder::PadSize" ,
 								"Size of one pad in mm",
 								m_AsicKeyFinderParameterSetting.padSize,
-								(float) 10.408 );
+								10.408f );
 
 	registerProcessorParameter( "AsicKeyFinder::PrintDebug" ,
 								"Boolean to know if debug if printed",
 								m_AsicKeyFinderParameterSetting.printDebug,
-								(bool) false );
+								false );
 }
 
 void AnalysisProcessor::init()
 {
 	printParameters() ;
+	energy = energyOfRun( runNumber ) ;
 
 	file = new TFile(outputRootName.c_str(),"RECREATE") ;
 
@@ -286,10 +305,18 @@ void AnalysisProcessor::init()
 	tree->Branch("eventTime" , &evtTime) ;
 	tree->Branch("spillEventTime" , &spillEvtTime) ;
 	tree->Branch("cerenkovTag" , &cerenkovTag) ;
+	tree->Branch("energy" , &energy) ;
+
 	tree->Branch("nHit" , &nHit) ;
 	tree->Branch("nHit1" , &nHit1) ;
 	tree->Branch("nHit2" , &nHit2) ;
 	tree->Branch("nHit3" , &nHit3) ;
+
+	tree->Branch("nHough" , &nHit) ;
+	tree->Branch("nHough1" , &nHough1) ;
+	tree->Branch("nHough2" , &nHough2) ;
+	tree->Branch("nHough3" , &nHough3) ;
+
 	tree->Branch("nLayer" , &nLayer) ;
 	tree->Branch("nInteractingLayer" , &nInteractingLayer) ;
 	tree->Branch("nCluster" , &nCluster) ;
@@ -360,14 +387,14 @@ void AnalysisProcessor::init()
 void AnalysisProcessor::processRunHeader( LCRunHeader* run)
 {
 	_nRun++ ;
-	_nEvt = 0;
+	_nEvt = 0 ;
 }
 
-void AnalysisProcessor::findEventTime(LCEvent* evt,LCCollection* col)
+void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* col)
 {
-	int hitTime = 0 ;
+	unsigned int hitTime = 0 ;
 	EVENT::CalorimeterHit* hit = NULL ;
-	if (col->getNumberOfElements()!=0)
+	if ( col->getNumberOfElements() != 0 )
 	{
 		try
 		{
@@ -377,10 +404,11 @@ void AnalysisProcessor::findEventTime(LCEvent* evt,LCCollection* col)
 		}
 		catch (std::exception e)
 		{
-			std::cout<<"No hits "<<std::endl ;
+			std::cout << "No hits " << std::endl ;
 			return ;
 		}
 	}
+
 	unsigned long long _bcid ;
 	unsigned long long _bcid1 ;
 	unsigned long long _bcid2 ;
@@ -412,7 +440,7 @@ void AnalysisProcessor::findSpillEventTime(LCEvent* evt,LCCollection* col)
 	unsigned long long Shift=16777216ULL;
 	_bcid=_bcid1*Shift+_bcid2; //trigger time
 
-	int hitTime=0;
+	unsigned int hitTime = 0 ;
 	EVENT::CalorimeterHit* hit=NULL;
 	if (col->getNumberOfElements()!=0)
 	{
@@ -621,11 +649,11 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			kVec.clear() ;
 			thrVec.clear() ;
 
-			for ( std::vector<caloobject::CaloHit*>::const_iterator it = shower->getHits().begin() ; it != shower->getHits().end() ; ++it )
+			for ( HitVec::const_iterator it = shower->getHits().begin() ; it != shower->getHits().end() ; ++it )
 			{
-				iVec.push_back( (*it)->getCellID()[0]) ;
-				jVec.push_back( (*it)->getCellID()[1]) ;
-				kVec.push_back( (*it)->getCellID()[2]) ;
+				iVec.push_back( (*it)->getCellID()[0] ) ;
+				jVec.push_back( (*it)->getCellID()[1] ) ;
+				kVec.push_back( (*it)->getCellID()[2] ) ;
 				thrVec.push_back( (*it)->getEnergy() ) ;
 			}
 
@@ -649,21 +677,37 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			std::vector<caloobject::CaloCluster2D*> clusterMipVec ;
 			algo_Hough->selectNonDensePart(clusterVec , clusterMipVec) ;
 
-			nMipCluster = clusterMipVec.size() ;
+			nMipCluster = static_cast<int>( clusterMipVec.size() ) ;
 
 			nTrack = static_cast<int>( trackVec.size() ) ;
-
 
 			tracksClusterSize.clear() ;
 			tracksClusterNumber.clear() ;
 
+			HitVec houghHitVec ;
+
 			for ( std::vector<caloobject::CaloTrack*>::const_iterator it = trackVec.begin() ; it != trackVec.end() ; ++it )
 			{
 				std::vector<caloobject::CaloCluster2D*> cl = (*it)->getClusters() ;
-				tracksClusterNumber.push_back( cl.size() ) ;
+				tracksClusterNumber.push_back( static_cast<int>( cl.size() ) ) ;
 
-				for ( std::vector<caloobject::CaloCluster2D*>::const_iterator it = cl.begin() ; it != cl.end() ; ++it )
-					tracksClusterSize.push_back( (*it)->getHits().size() ) ;
+				for ( std::vector<caloobject::CaloCluster2D*>::const_iterator jt = cl.begin() ; jt != cl.end() ; ++jt )
+				{
+					houghHitVec.insert( houghHitVec.end() , (*jt)->getHits().begin() , (*jt)->getHits().end() ) ;
+					tracksClusterSize.push_back( static_cast<int>( (*jt)->getHits().size() ) ) ;
+				}
+			}
+
+			nHough = nHough1 = nHough2 = nHough3 = 0 ;
+			for ( HitVec::const_iterator it = houghHitVec.begin() ; it != houghHitVec.end() ; ++it )
+			{
+				nHough++ ;
+				if ( (*it)->getEnergy() >= thresholdsFloat.at(2) )
+					nHough3++ ;
+				else if ( (*it)->getEnergy() >= thresholdsFloat.at(1) )
+					nHough2++ ;
+				else
+					nHough1++ ;
 			}
 
 			nInteractingLayer = getNInteractingLayer() ;
@@ -679,6 +723,11 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			eventNumber = _nEvt ;
 
+
+			if ( evt->getParameters().getNFloat( std::string("ParticleEnergy") ) != 0 )
+				energy = evt->getParameters().getFloatVal( std::string("ParticleEnergy") ) ;
+
+
 			tree->Fill() ;
 
 			delete shower ;
@@ -692,17 +741,17 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 		}
 		catch(DataNotAvailableException &e)
 		{
-			std::cout << "Exeption " << std::endl;
+			std::cout << "Exception " << std::endl ;
 		}
 	}
 	_nEvt ++ ;
-	std::cout << "Event processed : " << _nEvt << std::endl;
+	std::cout << "Event processed : " << _nEvt << std::endl ;
 }
 
 void AnalysisProcessor::clearVec()
 {
-	for( std::map<int,std::vector<caloobject::CaloHit*> >::iterator it = hitMap.begin() ; it!=hitMap.end() ; ++it )
-		for( std::vector<caloobject::CaloHit*>::iterator jt = (it->second).begin() ; jt != (it->second).end() ; ++jt )
+	for( std::map<int,HitVec>::iterator it = hitMap.begin() ; it!=hitMap.end() ; ++it )
+		for( HitVec::iterator jt = (it->second).begin() ; jt != (it->second).end() ; ++jt )
 			delete *jt ;
 
 	hitMap.clear() ;
@@ -719,13 +768,14 @@ void AnalysisProcessor::end()
 {
 	file->cd() ;
 
-	delete algo_Cluster;
-	delete algo_ClusteringHelper;
-	delete algo_Tracking;
-	delete algo_InteractionFinder;
-	delete algo_Efficiency;
-	delete algo_AsicKeyFinder;
+	delete algo_Cluster ;
+	delete algo_ClusteringHelper ;
+	delete algo_Tracking ;
+	delete algo_InteractionFinder ;
+	delete algo_Efficiency ;
+	delete algo_AsicKeyFinder ;
 
 	file->Write() ;
+	file->Purge() ;
 	file->Close() ;
 }
