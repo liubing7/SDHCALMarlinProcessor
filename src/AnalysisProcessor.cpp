@@ -698,10 +698,12 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				}
 			}
 
-			nHough = nHough1 = nHough2 = nHough3 = 0 ;
+			nHough = static_cast<int>( houghHitVec.size() ) ;
+			nHough1 = 0 ;
+			nHough2 = 0 ;
+			nHough3 = 0 ;
 			for ( HitVec::const_iterator it = houghHitVec.begin() ; it != houghHitVec.end() ; ++it )
 			{
-				nHough++ ;
 				if ( (*it)->getEnergy() >= thresholdsFloat.at(2) )
 					nHough3++ ;
 				else if ( (*it)->getEnergy() >= thresholdsFloat.at(1) )
