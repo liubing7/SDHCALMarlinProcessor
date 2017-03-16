@@ -94,7 +94,7 @@ if __name__ == '__main__' :
 
 	versionPath = 'Geant4.' + version
 
-	dir = 'srm://lyogrid06.in2p3.fr/dpm/in2p3.fr/home/calice/garillot/CalorimeterHit/' + versionPath + '/' + model
+	dir = 'root://lyogrid06.in2p3.fr/dpm/in2p3.fr/home/calice/garillot/CalorimeterHit/' + versionPath + '/' + model
 
 	print ('Searching files in ' + dir)
 
@@ -130,16 +130,16 @@ if __name__ == '__main__' :
 		download(dir + '/' + str(file) , 'file:' + str(file))
 
 
-	os.environ["MARLIN"] = '/gridgroup/gridsoft/ipnls/ilc/v01-19-01/Marlin/v01-10'
-	os.environ["PATH"] = '/gridgroup/gridsoft/ipnls/ilc/v01-19-01/Marlin/v01-10/bin' + ':' + os.environ["PATH"]
+	os.environ["MARLIN"] = '/gridgroup/gridsoft/ipnls/ilc/v01-17-09/Marlin/v01-08'
+	os.environ["PATH"] = '/gridgroup/gridsoft/ipnls/ilc/v01-17-09/Marlin/v01-08/bin' + ':' + os.environ["PATH"]
 	os.environ["MARLIN_DLL"] = '/gridgroup/ilc/garillot/SDHCALMarlinProcessor/lib/libsdhcalMarlin.so'
 
 
-	a = AnalysisProcesor.Params()
+	a = AnalysisProcessor.Params()
 
 	a.outputFileName = 'single_' + particle + '_' + energy + 'GeV.root'
 
-	AnalysisProcesor.launch(a , fileList)
+	AnalysisProcessor.launch(a , fileList)
 
   	outputDir = dir.replace('CalorimeterHit' , 'Analysis')
 

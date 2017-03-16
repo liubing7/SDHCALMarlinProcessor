@@ -24,7 +24,7 @@ def launch(a , files) :
  </execute>
 
  <global>
-  <parameter name="LCIOInputFiles">''' + a.filelist + '''</parameter>
+  <parameter name="LCIOInputFiles">''' + fileList + '''</parameter>
   <!-- limit the number of processed records (run+evt): -->
   <!--parameter name="MaxRecordNumber" value="200"/-->
   <!--parameter name="SkipNEvents" value="18000" /-->

@@ -18,13 +18,31 @@ def frange(x, y, jump) :
         y -= jump
 
 
-particle = ['pi-']
-energy = [90,80,70,60,50,40,30,20,10]
-model = ['FTFP_BERT_HP' , 'QGSP_BERT_HP' , 'FTF_BIC']
-version = ['9.6']
+#particle = ['pi-']
+#energy = [90,80,70,60,50,40,30,20,10]
+#model = ['FTFP_BERT_HP' , 'QGSP_BERT_HP' , 'FTF_BIC']
+#version = ['9.6']
+
+#par=[]
+#args = [ [ p , str(e) , m , str(v) ] for p in particle for e in energy for m in model for v in version ]
+
 
 par=[]
-args = [ [ p , str(e) , m , str(v) ] for p in particle for e in energy for m in model for v in version ]
+args=[]
+
+version = ['9.6']
+
+particle = ['pi-']
+energy = [90,80,70,60,50,40,30,20,10]
+model = ['FTFP_BERT_HP' , 'QGSP_BERT_HP' , 'FTF_BIC' , 'FTFP_BERT_EMY' , 'QGSP_BERT_EMY']
+
+args.extend( [ [ p , str(e) , m , str(v) ] for p in particle for e in energy for m in model for v in version ] )
+
+particle2 = ['e-']
+energy2 = [85 , 50 , 40 , 30 , 25 , 20 , 15 , 10]
+model2 = ['FTFP_BERT' , 'QGSP_BERT' , 'FTFP_BERT_EMY' , 'QGSP_BERT_EMY']
+
+args.extend( [ [ p , str(e) , m , str(v) ] for p in particle2 for e in energy2 for m in model2 for v in version ] )
 
 for i in args:
 	par.append(i)
