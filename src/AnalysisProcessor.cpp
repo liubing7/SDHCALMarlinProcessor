@@ -312,7 +312,7 @@ void AnalysisProcessor::init()
 	tree->Branch("nHit2" , &nHit2) ;
 	tree->Branch("nHit3" , &nHit3) ;
 
-	tree->Branch("nHough" , &nHit) ;
+	tree->Branch("nHough" , &nHough) ;
 	tree->Branch("nHough1" , &nHough1) ;
 	tree->Branch("nHough2" , &nHough2) ;
 	tree->Branch("nHough3" , &nHough3) ;
