@@ -668,8 +668,15 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			for ( unsigned int jj = 0 ; jj < 4 ; jj++ )
 				thrust[jj] = shower->getThrust().at(jj) ;
 
+
 			longiProfile = shower->getLongitudinal() ;
+			for ( unsigned int lp = 0 ; lp < longiProfile.size() ; ++lp )
+				longiProfile.at(lp) /= nHit ;
+
 			radiProfile = shower->getTransverse() ;
+			for ( unsigned int rp = 0 ; rp < radiProfile.size() ; ++rp )
+				radiProfile.at(rp) /= nHit ;
+
 
 			std::vector<caloobject::CaloTrack*> trackVec ;
 			algo_Hough->runHough(clusterVec , trackVec , algo_Tracking) ;
