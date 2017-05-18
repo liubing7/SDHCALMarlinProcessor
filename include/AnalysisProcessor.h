@@ -23,6 +23,7 @@
 #include "Algorithm/Efficiency.h"
 #include "Algorithm/AsicKeyFinder.h"
 #include "Algorithm/ShowerAnalyser.h"
+#include "Algorithm/Density.h"
 
 #include <TFile.h>
 #include <TTree.h>
@@ -106,6 +107,8 @@ class AnalysisProcessor : public Processor {
 		algorithm::Efficiency *algo_Efficiency;
 		algorithm::AsicKeyFinder *algo_AsicKeyFinder;
 
+		algorithm::Density* algo_density ;
+
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms setting parameter structure--------------------*/
@@ -181,6 +184,8 @@ class AnalysisProcessor : public Processor {
 
 		float transverseRatio ;
 
+		double density ;
+
 		float thrust[4] ;
 
 		bool neutral ;
@@ -192,6 +197,9 @@ class AnalysisProcessor : public Processor {
 		std::vector<int> jVec ;
 		std::vector<int> kVec ;
 		std::vector<int> thrVec ;
+
+
+		double emFraction ;
 
 
 } ;

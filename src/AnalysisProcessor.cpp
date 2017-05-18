@@ -327,6 +327,7 @@ void AnalysisProcessor::init()
 	tree->Branch("tracksClusterNumber" , "std::vector<int>" , &tracksClusterNumber) ;
 
 	tree->Branch("begin" , &begin) ;
+	tree->Branch("density" , &density) ;
 
 	tree->Branch("transverseRatio" , &transverseRatio) ;
 	tree->Branch("reconstructedCosTheta" , &reconstructedCosTheta) ;
@@ -337,6 +338,8 @@ void AnalysisProcessor::init()
 
 	tree->Branch("first5LayersRMS" , &first5LayersRMS) ;
 	tree->Branch("neutral" , &neutral) ;
+
+	tree->Branch("emFraction" , &emFraction) ;
 
 	tree->Branch("I" , "std::vector<int>" , &iVec) ;
 	tree->Branch("J" , "std::vector<int>" , &jVec) ;
@@ -381,6 +384,8 @@ void AnalysisProcessor::init()
 
 	algo_ShowerAnalyser = new algorithm::ShowerAnalyser() ;
 	algo_ShowerAnalyser->SetShowerAnalyserParameterSetting(m_ShowerAnalyserParameterSetting) ;
+
+	algo_density = new algorithm::Density() ;
 
 }
 
@@ -730,11 +735,22 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			first5LayersRMS = getFirst5LayersRMS() ;
 
+
+			//density
+			HitVec vec ;
+			for( std::map<int,HitVec>::const_iterator it = hitMap.begin() ; it != hitMap.end() ; ++it )
+				vec.insert(vec.end() , it->second.begin() , it->second.end() ) ;
+
+			density = algo_density->compute(vec) ;
+
+
 			eventNumber = _nEvt ;
 
 
 			if ( evt->getParameters().getNFloat( std::string("ParticleEnergy") ) != 0 )
 				energy = evt->getParameters().getFloatVal( std::string("ParticleEnergy") ) ;
+
+			emFraction = evt->getParameters().getFloatVal( std::string("EMFraction") ) ;
 
 
 			tree->Fill() ;

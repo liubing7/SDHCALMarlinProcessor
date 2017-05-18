@@ -24,13 +24,14 @@ import EfficiencyProcessor
 
 
 #inputFileName = 'digitMapTest.slcio'
-#inputFileName = 'digitMapTest728359.slcio'
+inputFileName = 'digitMapTest728359.slcio'
 #inputFileName = 'digitAnalog.slcio'
 #inputFileName = 'digitElecTest.slcio'
-#inputDir = '/home/garillot/testMarlinReco/trunk'
+#inputFileName = 'digitOld.slcio'
+inputDir = '/home/garillot/testMarlinReco/trunk'
 
-inputDir = '/home/garillot/files/muonsForBing/CalorimeterHit'
-inputFileName = 'single_mu-_50GeV.slcio'
+#inputDir = '/home/garillot/files/muonsForBing/CalorimeterHit'
+#inputFileName = 'single_mu-_50GeV.slcio'
 
 
 inputFilePath = inputDir + '/' + inputFileName
@@ -55,9 +56,9 @@ a = EfficiencyProcessor.Params()
 #a.outputFileName = 'map_digitMapTest.root'
 #a.outputFileName = 'map_digitMapTestAnalog.root'
 #a.outputFileName = 'map_digitMapElecTest.root'
-#a.outputFileName = 'map_digitMapTest728359.root'
-
-a.outputFileName = 'muonsBing.root'
+a.outputFileName = 'map_digitMapTest728359.root'
+#a.outputFileName = 'map_digitOld.root'
+#a.outputFileName = 'muonsBing.root'
 
 EfficiencyProcessor.launch(a , fileList)
 
