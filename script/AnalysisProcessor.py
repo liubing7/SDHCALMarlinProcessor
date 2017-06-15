@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import sys
 
 class Params :
 	def __init__(self) :
@@ -53,4 +54,27 @@ def launch(a , files) :
 
 	os.system('Marlin ' + xmlFileName)
 	os.system('rm ' + xmlFileName)
+
+
+
+if __name__ == '__main__' :
+
+	if len(sys.argv) < 2 :
+		sys.exit('Error : too few arguments')
+
+
+	fileList = [ sys.argv[1] ]
+
+	print 'File List :'
+	print fileList
+
+	os.environ["MARLIN"] = '/home/garillot/ilcsoft/v01-17-08/Marlin/v01-07'
+	os.environ["PATH"] = '/home/garillot/ilcsoft/v01-17-08/Marlin/v01-07/bin' + ':' + os.environ["PATH"]
+	os.environ["MARLIN_DLL"] = '/home/garillot/SDHCALMarlinProcessor/lib/libsdhcalMarlin.so'
+
+	a = Params()
+
+	a.outputFileName = sys.argv[1].replace('.slcio' , '.root')
+
+	launch(a , fileList)
 
