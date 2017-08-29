@@ -17,7 +17,37 @@ using namespace marlin ;
 
 EfficiencyVsAngleProcessor aEfficiencyVsAngleProcessor ;
 
-EfficiencyVsAngleProcessor::EfficiencyVsAngleProcessor() : Processor("EfficiencyVsAngleProcessor")
+EfficiencyVsAngleProcessor::EfficiencyVsAngleProcessor()
+	: Processor("EfficiencyVsAngleProcessor") ,
+	  _hcalCollections() ,
+	  hitMap() ,
+	  _difList() ,
+	  edges() ,
+	  posShift() ,
+	  algo_Cluster() ,
+	  algo_ClusteringHelper() ,
+	  algo_Tracking() ,
+	  algo_InteractionFinder() ,
+	  algo_Efficiency() ,
+	  algo_AsicKeyFinder() ,
+	  m_ClusterParameterSetting() ,
+	  m_ClusteringHelperParameterSetting() ,
+	  m_TrackingParameterSetting() ,
+	  m_InteractionFinderParameterSetting() ,
+	  m_EfficiencyParameterSetting() ,
+	  m_AsicKeyFinderParameterSetting() ,
+	  m_CaloGeomSetting() ,
+	  layers() ,
+	  thresholdsFloat() ,
+	  thresholds() ,
+	  nTracksAngleVec() ,
+	  mulAngleVec() ,
+	  eff1AngleVec() ,
+	  eff2AngleVec() ,
+	  eff3AngleVec() ,
+	  efficiencies() ,
+	  efficienciesError() ,
+	  position()
 {
 
 	// modify processor description
@@ -42,12 +72,12 @@ EfficiencyVsAngleProcessor::EfficiencyVsAngleProcessor() : Processor("Efficiency
 								_nActiveLayers,
 								48 );
 
-	registerProcessorParameter( "N_ASIC" ,
+	registerProcessorParameter( "N_ASICX" ,
 								"Number of ASIC per layer in x direction",
 								_nAsicX,
 								int(12) ) ;
 
-	registerProcessorParameter( "N_ASIC" ,
+	registerProcessorParameter( "N_ASICY" ,
 								"Number of ASIC per layer in y direction",
 								_nAsicY,
 								int(12) ) ;
@@ -359,14 +389,14 @@ void EfficiencyVsAngleProcessor::init()
 	{
 		caloobject::Layer* aLayer = new caloobject::SDHCALLayer(static_cast<int>(k) , _difList.at(3*k+2) , _difList.at(3*k+1) , _difList.at(k)) ;
 		aLayer->setPosition( CLHEP::Hep3Vector(10.408 , 10.408 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
-//		aLayer->buildAsics() ;
+		//		aLayer->buildAsics() ;
 		aLayer->setThresholds(thresholds) ;
 		layers.push_back(aLayer) ;
 	}
 
 }
 
-void EfficiencyVsAngleProcessor::processRunHeader( LCRunHeader* run )
+void EfficiencyVsAngleProcessor::processRunHeader(LCRunHeader* )
 {
 	_nRun++ ;
 	_nEvt = 0 ;
@@ -427,7 +457,7 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 			caloobject::CaloCluster* cluster = algo_Efficiency->getGoodCluster() ;
 
 			unsigned int cosTheta = static_cast<unsigned int>( std::abs( 100*track->getCosTheta() ) ) ;
-//			std::cout << cosTheta << std::endl ;
+			//			std::cout << cosTheta << std::endl ;
 
 			if (cosTheta >= 100) //for binning
 				cosTheta = 99 ;
@@ -436,7 +466,7 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 
 			if ( cluster )
 			{
-//				std::cout << cluster << std::endl ;
+				//				std::cout << cluster << std::endl ;
 				mulAngleVec.at(cosTheta) += cluster->getHits().size() ;
 				float maxThr = cluster->getMaxEnergy() ;
 
@@ -474,7 +504,7 @@ void EfficiencyVsAngleProcessor::processEvent( LCEvent * evt )
 			{
 				CalorimeterHit * hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
-				int cellID[] = {IDdecoder(hit)["I"],IDdecoder(hit)["J"],IDdecoder(hit)["K-1"]} ;
+				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
 
 				if ( cellID[2] > _nActiveLayers )
 					continue ;
@@ -514,7 +544,7 @@ void EfficiencyVsAngleProcessor::clearVec()
 }
 
 
-void EfficiencyVsAngleProcessor::check( LCEvent * evt )
+void EfficiencyVsAngleProcessor::check(LCEvent* )
 {
 	// nothing to check here - could be used to fill checkplots in reconstruction processor
 }

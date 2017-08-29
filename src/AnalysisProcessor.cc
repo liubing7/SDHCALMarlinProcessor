@@ -11,6 +11,8 @@
 #include "marlin/VerbosityLevels.h"
 #include <string.h>
 
+#include <ctime>
+
 #include "EnergyOfRun.h"
 
 using namespace lcio ;
@@ -18,7 +20,42 @@ using namespace marlin ;
 
 AnalysisProcessor aAnalysisProcessor ;
 
-AnalysisProcessor::AnalysisProcessor() : Processor("AnalysisProcessor")
+AnalysisProcessor::AnalysisProcessor()
+	: Processor("AnalysisProcessor") ,
+	   _hcalCollections() ,
+	  hitMap() ,
+	  clusterVec() ,
+	  _difList() ,
+	  edges() ,  //vector to recover geometry parameters
+	  posShift() ,
+	  algo_Cluster() ,
+	  algo_ClusteringHelper() ,
+	  algo_Tracking() ,
+	  algo_Hough() ,
+	  algo_InteractionFinder() ,
+	  algo_Efficiency() ,
+	  algo_AsicKeyFinder() ,
+	  algo_density() ,
+	  m_ClusterParameterSetting() ,
+	  m_ClusteringHelperParameterSetting() ,
+	  m_TrackingParameterSetting() ,
+	  m_HoughParameterSetting() ,
+	  m_InteractionFinderParameterSetting() ,
+	  m_EfficiencyParameterSetting() ,
+	  m_AsicKeyFinderParameterSetting() ,
+	  m_CaloGeomSetting() ,
+	  m_ShowerAnalyserParameterSetting() ,
+	  algo_ShowerAnalyser() ,
+	  thresholdsFloat() ,
+	  thresholds() ,
+	  tracksClusterSize() ,
+	  tracksClusterNumber() ,
+	  longiProfile() ,
+	  radiProfile()  ,
+	  iVec() ,
+	  jVec() ,
+	  kVec() ,
+	  thrVec()
 {
 
 	// modify processor description
@@ -48,25 +85,24 @@ AnalysisProcessor::AnalysisProcessor() : Processor("AnalysisProcessor")
 								_nActiveLayers,
 								int(48) );
 
-	registerProcessorParameter( "N_ASIC" ,
+	registerProcessorParameter( "N_ASICX" ,
 								"Number of ASIC per layer in x direction",
 								_nAsicX,
 								int(12) );
 
-	registerProcessorParameter( "N_ASIC" ,
+	registerProcessorParameter( "N_ASICY" ,
 								"Number of ASIC per layer in y direction",
 								_nAsicY,
 								int(12) );
 
-	int difTab[]={ 181,94,30, 174,175,176, 158,142,141, 129,118,119, 164,152,151,  74,61,75,
-				   156,111,110, 102,177,103,  133,136,134,  128,120,121,  65,64,58,  148,72,73,
-				   78,79,60,  44,43,113,  243,242,241,   186,127,154,  147,70,71,   47,139,140,
-				   143,77,76,   159,91,36,   179,178,183,  41,42,67,  137,46,138,  131,173,144,
-				   189,184,160,  172,167,171,  146,135,145,  185,170,180,  187,188,190,  169,165,166,
-				   155,57,50,  153,108,25,   51,56,109,   107,150,116,  126,124,49,  117,149,115,
-				   48,45,114,   98,93,40,   92,97,100,  62,106,132,  101,35,99,  122,123,130,
-				   163,161,162,  104,29,112,  59,53,54,  96,90,27,  95,8,5,  63,87,18 };
-	std::vector<int> difVec(difTab, difTab + sizeof(difTab) / sizeof(int) );
+	std::vector<int> difVec = { 181,94,30, 174,175,176, 158,142,141, 129,118,119, 164,152,151,  74,61,75,
+								156,111,110, 102,177,103,  133,136,134,  128,120,121,  65,64,58,  148,72,73,
+								78,79,60,  44,43,113,  243,242,241,   186,127,154,  147,70,71,   47,139,140,
+								143,77,76,   159,91,36,   179,178,183,  41,42,67,  137,46,138,  131,173,144,
+								189,184,160,  172,167,171,  146,135,145,  185,170,180,  187,188,190,  169,165,166,
+								155,57,50,  153,108,25,   51,56,109,   107,150,116,  126,124,49,  117,149,115,
+								48,45,114,   98,93,40,   92,97,100,  62,106,132,  101,35,99,  122,123,130,
+								163,161,162,  104,29,112,  59,53,54,  96,90,27,  95,8,5,  63,87,18 } ;
 
 	registerProcessorParameter( "DifList" ,
 								"Vector of dif number",
@@ -74,18 +110,15 @@ AnalysisProcessor::AnalysisProcessor() : Processor("AnalysisProcessor")
 								difVec );
 
 
-	std::vector<float> vec ;
-	vec.push_back(499.584f) ;
-	vec.push_back(499.584f) ;
-	vec.push_back(0) ;
+	//	std::vector<float> vec = { 499.584f , 499.584f , 0.0f } ;
+
 	// registerProcessorParameter( "PositionShift" ,
 	// 			      "3 Vector to shift to have the right (0,0,0) position",
 	// 			      _posShift,
 	// 			      vec );
-	posShift = CLHEP::Hep3Vector( 0.0, 0.0, 0.0 ) ;
+	posShift = CLHEP::Hep3Vector( 0.0 , 0.0 , 0.0 ) ;
 
-	float thr[] = { 1.0f , 2.0f , 3.0f } ; //default value for semi-digital hits
-	std::vector<float> thresholdsVec(thr, thr + sizeof(thr) / sizeof(float) ) ;
+	std::vector<float> thresholdsVec = { 1.0f , 2.0f , 3.0f } ;
 
 	std::sort( thresholdsVec.begin() , thresholdsVec.end() ) ;
 
@@ -94,7 +127,7 @@ AnalysisProcessor::AnalysisProcessor() : Processor("AnalysisProcessor")
 								thresholdsFloat,
 								thresholdsVec ) ;
 
-	AlgorithmRegistrationParameters();
+	AlgorithmRegistrationParameters() ;
 }
 
 
@@ -302,6 +335,7 @@ void AnalysisProcessor::init()
 	}
 
 	tree->Branch("eventNumber", &eventNumber) ;
+	tree->Branch("computingTime", &computingTime) ;
 	tree->Branch("eventTime" , &evtTime) ;
 	tree->Branch("spillEventTime" , &spillEvtTime) ;
 	tree->Branch("cerenkovTag" , &cerenkovTag) ;
@@ -327,6 +361,7 @@ void AnalysisProcessor::init()
 	tree->Branch("tracksClusterNumber" , "std::vector<int>" , &tracksClusterNumber) ;
 
 	tree->Branch("begin" , &begin) ;
+	tree->Branch("end" , &_end) ;
 	tree->Branch("density" , &density) ;
 
 	tree->Branch("transverseRatio" , &transverseRatio) ;
@@ -389,21 +424,21 @@ void AnalysisProcessor::init()
 
 }
 
-void AnalysisProcessor::processRunHeader( LCRunHeader* run)
+void AnalysisProcessor::processRunHeader(LCRunHeader*)
 {
 	_nRun++ ;
 	_nEvt = 0 ;
 }
 
-void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* col)
+void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
 {
 	unsigned int hitTime = 0 ;
 	EVENT::CalorimeterHit* hit = NULL ;
-	if ( col->getNumberOfElements() != 0 )
+	if ( _col->getNumberOfElements() != 0 )
 	{
 		try
 		{
-			hit = dynamic_cast<EVENT::CalorimeterHit*>( col->getElementAt(0) ) ;
+			hit = dynamic_cast<EVENT::CalorimeterHit*>( _col->getElementAt(0) ) ;
 			hitTime = uint (hit->getTime() ) ;
 
 		}
@@ -430,7 +465,7 @@ void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* col)
 	evtTime = _bcid - hitTime ;
 }
 
-void AnalysisProcessor::findSpillEventTime(LCEvent* evt,LCCollection* col)
+void AnalysisProcessor::findSpillEventTime(LCEvent* evt , LCCollection* _col)
 {
 	unsigned long long _bcid;
 	unsigned long long _bcid1;
@@ -447,11 +482,11 @@ void AnalysisProcessor::findSpillEventTime(LCEvent* evt,LCCollection* col)
 
 	unsigned int hitTime = 0 ;
 	EVENT::CalorimeterHit* hit=NULL;
-	if (col->getNumberOfElements()!=0)
+	if (_col->getNumberOfElements()!=0)
 	{
 		try
 		{
-			hit = dynamic_cast<EVENT::CalorimeterHit*>( col->getElementAt(0) ) ;
+			hit = dynamic_cast<EVENT::CalorimeterHit*>( _col->getElementAt(0) ) ;
 			hitTime = uint( hit->getTime() ) ;
 
 		}
@@ -572,6 +607,9 @@ int AnalysisProcessor::getNInteractingLayer()
 
 void AnalysisProcessor::processEvent( LCEvent * evt )
 {
+	clock_t beginClock = clock() ;
+
+
 	//
 	// * Reading HCAL Collections of CalorimeterHits*
 	//
@@ -665,7 +703,10 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			if ( !shower->findInteraction() )
 				begin = -10 ;
 			else
-				begin = shower->getStartingPosition()[2] ;
+				begin = shower->getFirstIntCluster()->getLayerID() ;
+			//				begin = shower->getStartingPosition()[2] ;
+
+			_end = shower->getLastClusterPosition() ;
 
 			transverseRatio = shower->getTransverseRatio() ;
 			reconstructedCosTheta = shower->getReconstructedCosTheta() ;
@@ -681,7 +722,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			radiProfile = shower->getTransverse() ;
 			for ( unsigned int rp = 0 ; rp < radiProfile.size() ; ++rp )
 				radiProfile.at(rp) /= nHit ;
-
 
 			std::vector<caloobject::CaloTrack*> trackVec ;
 			algo_Hough->runHough(clusterVec , trackVec , algo_Tracking) ;
@@ -724,6 +764,8 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 					nHough1++ ;
 			}
 
+
+
 			nInteractingLayer = getNInteractingLayer() ;
 
 			nCluster = static_cast<int>( clusterVec.size() ) ;
@@ -743,7 +785,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			density = algo_density->compute(vec) ;
 
-
 			eventNumber = _nEvt ;
 
 
@@ -752,6 +793,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			emFraction = evt->getParameters().getFloatVal( std::string("EMFraction") ) ;
 
+			computingTime = 1.0*( clock() - beginClock )/CLOCKS_PER_SEC ;
 
 			tree->Fill() ;
 
@@ -770,6 +812,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 		}
 	}
 	_nEvt ++ ;
+
 	std::cout << "Event processed : " << _nEvt << std::endl ;
 }
 
@@ -783,7 +826,7 @@ void AnalysisProcessor::clearVec()
 }
 
 
-void AnalysisProcessor::check( LCEvent * evt )
+void AnalysisProcessor::check(LCEvent*)
 {
 	// nothing to check here - could be used to fill checkplots in reconstruction processor
 }

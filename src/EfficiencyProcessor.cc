@@ -15,7 +15,32 @@ using namespace marlin ;
 
 EfficiencyProcessor aEfficiencyProcessor ;
 
-EfficiencyProcessor::EfficiencyProcessor() : Processor("EfficiencyProcessor")
+EfficiencyProcessor::EfficiencyProcessor()
+	: Processor("EfficiencyProcessor") ,
+	  _hcalCollections() ,
+	  hitMap() ,
+	  _difList() ,
+	  edges() ,
+	  posShift() ,
+	  algo_Cluster() ,
+	  algo_ClusteringHelper() ,
+	  algo_Tracking() ,
+	  algo_InteractionFinder() ,
+	  algo_Efficiency() ,
+	  algo_AsicKeyFinder() ,
+	  m_ClusterParameterSetting() ,
+	  m_ClusteringHelperParameterSetting() ,
+	  m_TrackingParameterSetting() ,
+	  m_InteractionFinderParameterSetting() ,
+	  m_EfficiencyParameterSetting() ,
+	  m_AsicKeyFinderParameterSetting() ,
+	  m_CaloGeomSetting() ,
+	  layers() ,
+	  thresholdsFloat() ,
+	  thresholds() ,
+	  efficiencies() ,
+	  efficienciesError() ,
+	  position()
 {
 
 	// modify processor description
@@ -40,12 +65,12 @@ EfficiencyProcessor::EfficiencyProcessor() : Processor("EfficiencyProcessor")
 								_nActiveLayers,
 								48 );
 
-	registerProcessorParameter( "N_ASIC" ,
+	registerProcessorParameter( "N_ASICX" ,
 								"Number of ASIC per layer in x direction",
 								_nAsicX,
 								int(12) ) ;
 
-	registerProcessorParameter( "N_ASIC" ,
+	registerProcessorParameter( "N_ASICY" ,
 								"Number of ASIC per layer in y direction",
 								_nAsicY,
 								int(12) ) ;
@@ -349,7 +374,7 @@ void EfficiencyProcessor::init()
 
 }
 
-void EfficiencyProcessor::processRunHeader( LCRunHeader* run )
+void EfficiencyProcessor::processRunHeader(LCRunHeader* )
 {
 	_nRun++ ;
 	_nEvt = 0 ;
@@ -357,7 +382,7 @@ void EfficiencyProcessor::processRunHeader( LCRunHeader* run )
 
 void EfficiencyProcessor::DoTracking()
 {
-//	std::cout << "DoTracking()" << std::endl ;
+	//	std::cout << "DoTracking()" << std::endl ;
 
 	std::vector<caloobject::CaloCluster2D*> clusters ;
 	for(std::map<int,std::vector<caloobject::CaloHit*> >::iterator it = hitMap.begin() ; it != hitMap.end() ; ++it)
@@ -395,7 +420,7 @@ void EfficiencyProcessor::DoTracking()
 
 void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*> &clusters)
 {
-//	std::cout << "LayerProperties()" << std::endl ;
+	//	std::cout << "LayerProperties()" << std::endl ;
 
 	int trackBegin = (*clusters.begin())->getLayerID() ;
 	int trackEnd = (*(clusters.end()-1))->getLayerID() ;
@@ -408,10 +433,10 @@ void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*
 
 	for( int K = trackBegin ; K <= trackEnd ; K++ )
 	{
-//		std::cout << "K : " << K << std::endl ;
-//		std::cout << "toto" << std::endl ;
+		//		std::cout << "K : " << K << std::endl ;
+		//		std::cout << "toto" << std::endl ;
 		algo_Efficiency->Run(layers.at(K) , clusters) ;
-//		std::cout << "titi" << std::endl ;
+		//		std::cout << "titi" << std::endl ;
 
 		if ( algo_Efficiency->isTrack() )
 		{
@@ -442,7 +467,7 @@ void EfficiencyProcessor::processEvent( LCEvent * evt )
 			{
 				CalorimeterHit * hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
-				int cellID[] = {IDdecoder(hit)["I"],IDdecoder(hit)["J"],IDdecoder(hit)["K-1"]} ;
+				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
 
 				if ( cellID[2] >= _nActiveLayers )
 					continue ;
@@ -479,7 +504,7 @@ void EfficiencyProcessor::clearVec()
 }
 
 
-void EfficiencyProcessor::check( LCEvent * evt )
+void EfficiencyProcessor::check(LCEvent* )
 {
 	// nothing to check here - could be used to fill checkplots in reconstruction processor
 }
@@ -504,8 +529,8 @@ void EfficiencyProcessor::end()
 		layerID = (*layIt)->getID() ;
 
 		//test
-//		if ( layerID == 1 || layerID == 34 )
-//			continue ;
+		//		if ( layerID == 1 || layerID == 34 )
+		//			continue ;
 
 		AsicMap asics = (*layIt)->getAsics() ;
 		for( AsicMap::const_iterator asicIt = asics.begin() ; asicIt != asics.end() ; ++asicIt )
@@ -555,7 +580,7 @@ void EfficiencyProcessor::end()
 
 		} //asic loop
 
-		//glocal values for layer
+		//global values for layer
 		asicID = -1 ;
 		padID = -1 ;
 		difID = -1 ;
@@ -612,7 +637,7 @@ void EfficiencyProcessor::end()
 	for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
 	{
 		efficiencies.at(i) = ( globalEff.at(i)/layers.size() ) ;
-//		efficiencies.at(i) = ( globalEff.at(i)/(layers.size()-2) ) ;
+		//		efficiencies.at(i) = ( globalEff.at(i)/(layers.size()-2) ) ;
 		efficienciesError.at(i) = std::sqrt( 1.0/globalEffErr.at(i) ) ;
 	}
 

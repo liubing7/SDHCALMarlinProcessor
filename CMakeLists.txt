@@ -17,7 +17,6 @@ SET( ${PROJECT_NAME}_VERSION_MINOR 1 )
 SET( ${PROJECT_NAME}_VERSION_PATCH 0 )
 
 
-
 ### DEPENDENCIES ############################################################
 
 FIND_PACKAGE( ILCUTIL REQUIRED COMPONENTS ILCSOFT_CMAKE_MODULES )
@@ -27,13 +26,13 @@ INCLUDE( ilcsoft_default_settings )
 
 
 FIND_PACKAGE( Marlin 1.0 REQUIRED ) # minimum required Marlin version
-FIND_PACKAGE( ROOT REQUIRED ) # minimum required Marlin version
+FIND_PACKAGE( ROOT 6.08 REQUIRED ) # minimum required Marlin version
 FIND_PACKAGE( CLHEP REQUIRED )
 FIND_PACKAGE( LCIO REQUIRED )
 
-FOREACH( pkg LCIO ROOT Marlin CLHEP)
+FOREACH( pkg LCIO ROOT Marlin CLHEP )
     IF( ${pkg}_FOUND )
-        INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
+        INCLUDE_DIRECTORIES( SYSTEM ${${pkg}_INCLUDE_DIRS} )
         LINK_LIBRARIES( ${${pkg}_LIBRARIES} )
         ADD_DEFINITIONS ( ${${pkg}_DEFINITIONS} )
 
@@ -42,7 +41,7 @@ ENDFOREACH()
 
 FIND_PACKAGE( CaloSoftWare REQUIRED )
 FOREACH( pkg CaloSoftWare )
-    INCLUDE_DIRECTORIES( ${${pkg}_INCLUDE_DIRS} )
+	INCLUDE_DIRECTORIES( SYSTEM ${${pkg}_INCLUDE_DIRS} )
     LINK_LIBRARIES( ${${pkg}_LIBRARIES} )
     ADD_DEFINITIONS ( ${${pkg}_DEFINITIONS} )
 ENDFOREACH()
@@ -55,26 +54,20 @@ IF( INSTALL_DOC AND EXISTS "${PROJECT_SOURCE_DIR}/doc/CMakeLists.txt" )
 ENDIF()
 
 
-
 ### LIBRARY #################################################################
 
-# definitions to pass to the compiler
-#LIST(APPEND ${CMAKE_CXX_FLAGS} "-Wall -ansi -pedantic" )
-#LIST(APPEND ${CMAKE_CXX_FLAGS} "-Wno-long-long" )
-
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ansi -pedantic -Wno-long-long")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ansi -pedantic -Wno-long-long -std=c++11")
 
 # include directories
-INCLUDE_DIRECTORIES( ./include )
+include_directories( ./include )
 #INSTALL_DIRECTORY( ./include DESTINATION . FILES_MATCHING PATTERN "*.h" )
 
-FILE(GLOB_RECURSE toto "include/*.h")
-add_custom_target(headers SOURCES ${toto})
+FILE(GLOB_RECURSE headers "include/*.h")
+FILE(GLOB_RECURSE sources "src/*.cc")
 
 # add library
-AUX_SOURCE_DIRECTORY( ./src library_sources )
-ADD_SHARED_LIBRARY( ${PROJECT_NAME} ${library_sources} )
-INSTALL_SHARED_LIBRARY( ${PROJECT_NAME} DESTINATION lib )
+add_library( ${PROJECT_NAME} SHARED ${sources} ${headers} )
+install( TARGETS ${PROJECT_NAME} LIBRARY DESTINATION lib )
 
 # display some variables and write them to cache
 DISPLAY_STD_VARIABLES()

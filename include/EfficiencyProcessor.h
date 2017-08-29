@@ -32,9 +32,10 @@ using namespace lcio ;
 using namespace marlin ;
 
 
-class EfficiencyProcessor : public Processor {
+class EfficiencyProcessor : public Processor
+{
 
-	public:
+	public :
 
 		virtual Processor*  newProcessor() { return new EfficiencyProcessor ; }
 
@@ -48,14 +49,14 @@ class EfficiencyProcessor : public Processor {
 
 		/** Called for every run.
    */
-		virtual void processRunHeader( LCRunHeader* run ) ;
+		virtual void processRunHeader(LCRunHeader* ) ;
 
 		/** Called for every event - the working horse.
    */
 		virtual void processEvent( LCEvent * evt ) ;
 
 
-		virtual void check( LCEvent * evt ) ;
+		virtual void check(LCEvent* ) ;
 
 
 		/** Called after data processing for clean up.
@@ -70,11 +71,14 @@ class EfficiencyProcessor : public Processor {
 
 		//		inline int findAsicID(int key) {return sdhcal_asic_table[ 4*(key%1000%12) + (key%1000/12)%4 ] ; }
 
-	protected:
+		EfficiencyProcessor(const EfficiencyProcessor &toCopy) = delete ;
+		void operator=(const EfficiencyProcessor &toCopy) = delete ;
 
-		int _nRun ;
-		int _nEvt ;
-		int _goodTrackCounter ;
+	protected :
+
+		int _nRun = 0 ;
+		int _nEvt = 0 ;
+		int _goodTrackCounter = 0 ;
 		/** Input collection name.
    */
 		std::vector<std::string> _hcalCollections ;
@@ -83,23 +87,23 @@ class EfficiencyProcessor : public Processor {
 		std::map<int,std::vector<caloobject::CaloHit*> > hitMap ;
 
 		/*--------------------Global parameters--------------------*/
-		int _nActiveLayers ;
-		int numElements;
-		LCCollection * col;
-		int _nAsicX;
-		int _nAsicY;
+		int _nActiveLayers = 0 ;
+		int numElements= 0 ;
+		LCCollection* col = nullptr ;
+		int _nAsicX = 0 ;
+		int _nAsicY = 0 ;
 		std::vector<int> _difList;
 		std::vector<float> edges; //vector to recover geometry parameters
 		CLHEP::Hep3Vector posShift;
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms list to initialise--------------------*/
-		algorithm::Cluster *algo_Cluster;
-		algorithm::ClusteringHelper *algo_ClusteringHelper;
-		algorithm::Tracking *algo_Tracking;
-		algorithm::InteractionFinder *algo_InteractionFinder;
+		algorithm::Cluster* algo_Cluster ;
+		algorithm::ClusteringHelper* algo_ClusteringHelper ;
+		algorithm::Tracking* algo_Tracking ;
+		algorithm::InteractionFinder* algo_InteractionFinder ;
 		algorithm::Efficiency* algo_Efficiency ;
-		algorithm::AsicKeyFinder *algo_AsicKeyFinder;
+		algorithm::AsicKeyFinder* algo_AsicKeyFinder ;
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms setting parameter structure--------------------*/
@@ -112,7 +116,7 @@ class EfficiencyProcessor : public Processor {
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------CaloObject setting parameter structure--------------------*/
-		caloobject::GeomParameterSetting m_CaloGeomSetting;
+		caloobject::GeomParameterSetting m_CaloGeomSetting ;
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------CaloObject list to initialise--------------------*/
@@ -123,30 +127,25 @@ class EfficiencyProcessor : public Processor {
 		std::vector<double> thresholds ;
 
 		/*--------------------Root output object--------------------*/
-		std::string outputRootName ;
-		TFile* file ;
-		TTree* tree ;
+		std::string outputRootName = "" ;
+		TFile* file = nullptr ;
+		TTree* tree = nullptr ;
 
 
-		TH2D* trackPositionHist ;
+		TH2D* trackPositionHist = nullptr ;
 
-		int layerID ;
-		int difID ;
-		int asicID ;
-		int padID ;
-//		double efficiency1 ;
-//		double efficiency2 ;
-//		double efficiency3 ;
-//		double efficiency1Error ;
-//		double efficiency2Error ;
-//		double efficiency3Error ;
-		double multiplicity ;
-		double multiplicityError ;
+		int layerID = 0 ;
+		int difID = 0 ;
+		int asicID = 0 ;
+		int padID = 0 ;
+
+		double multiplicity = 0 ;
+		double multiplicityError = 0 ;
 
 		std::vector<double> efficiencies ;
 		std::vector<double> efficienciesError ;
 
-		int nTracks ;
+		int nTracks = 0 ;
 
 		std::vector<double> position ;
 } ;

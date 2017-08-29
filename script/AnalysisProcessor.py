@@ -8,6 +8,7 @@ class Params :
 		self.collectionName = 'HCALEndcap'
 		self.outputFileName = 'analysis.root'
 		self.runNumber = 0
+		self.maxRecordNumber = 0
 
 def launch(a , files) :
 
@@ -27,7 +28,7 @@ def launch(a , files) :
  <global>
   <parameter name="LCIOInputFiles">''' + fileList + '''</parameter>
   <!-- limit the number of processed records (run+evt): -->
-  <!--parameter name="MaxRecordNumber" value="200"/-->
+  <parameter name="MaxRecordNumber" value="''' + str(a.maxRecordNumber) + '''"/>
   <!--parameter name="SkipNEvents" value="18000" /-->
   <parameter name="SupressCheck" value="false" />
   <parameter name="Verbosity" options="DEBUG0-4,MESSAGE0-4,WARNING0-4,ERROR0-4,SILENT"> MESSAGE </parameter> 
@@ -68,8 +69,8 @@ if __name__ == '__main__' :
 	print 'File List :'
 	print fileList
 
-	os.environ["MARLIN"] = '/home/garillot/ilcsoft/v01-17-08/Marlin/v01-07'
-	os.environ["PATH"] = '/home/garillot/ilcsoft/v01-17-08/Marlin/v01-07/bin' + ':' + os.environ["PATH"]
+	os.environ["MARLIN"] = '/home/garillot/ilcsoft/v01-19-03/Marlin/v01-12'
+	os.environ["PATH"] = '/home/garillot/ilcsoft/v01-19-03/Marlin/v01-12/bin' + ':' + os.environ["PATH"]
 	os.environ["MARLIN_DLL"] = '/home/garillot/SDHCALMarlinProcessor/lib/libsdhcalMarlin.so'
 
 	a = Params()

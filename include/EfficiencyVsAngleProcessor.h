@@ -32,11 +32,12 @@ using namespace lcio ;
 using namespace marlin ;
 
 
-class EfficiencyVsAngleProcessor : public Processor {
+class EfficiencyVsAngleProcessor : public Processor
+{
 
 	public :
 
-		virtual Processor*  newProcessor() { return new EfficiencyVsAngleProcessor ; }
+		virtual Processor* newProcessor() { return new EfficiencyVsAngleProcessor ; }
 
 
 		EfficiencyVsAngleProcessor() ;
@@ -48,14 +49,14 @@ class EfficiencyVsAngleProcessor : public Processor {
 
 		/** Called for every run.
    */
-		virtual void processRunHeader( LCRunHeader* run ) ;
+		virtual void processRunHeader(LCRunHeader* ) ;
 
 		/** Called for every event - the working horse.
    */
 		virtual void processEvent( LCEvent * evt ) ;
 
 
-		virtual void check( LCEvent * evt ) ;
+		virtual void check(LCEvent* ) ;
 
 
 		/** Called after data processing for clean up.
@@ -69,11 +70,14 @@ class EfficiencyVsAngleProcessor : public Processor {
 		inline int findDifID(int key) { return _difList.at( key/1000*3 + 2-key%1000/12/4 ) ; }
 
 
+		EfficiencyVsAngleProcessor(const EfficiencyVsAngleProcessor &toCopy) = delete ;
+		void operator=(const EfficiencyVsAngleProcessor &toCopy) = delete ;
+
 	protected :
 
-		int _nRun ;
-		int _nEvt ;
-		int _goodTrackCounter ;
+		int _nRun = 0 ;
+		int _nEvt = 0 ;
+		int _goodTrackCounter = 0 ;
 		/** Input collection name.
    */
 		std::vector<std::string> _hcalCollections ;
@@ -82,11 +86,11 @@ class EfficiencyVsAngleProcessor : public Processor {
 		std::map<int,std::vector<caloobject::CaloHit*> > hitMap ;
 
 		/*--------------------Global parameters--------------------*/
-		int _nActiveLayers ;
-		int numElements;
-		LCCollection * col;
-		int _nAsicX;
-		int _nAsicY;
+		int _nActiveLayers = 0 ;
+		int numElements = 0 ;
+		LCCollection* col = nullptr ;
+		int _nAsicX = 0 ;
+		int _nAsicY = 0 ;
 		std::vector<int> _difList;
 		std::vector<float> edges; //vector to recover geometry parameters
 		CLHEP::Hep3Vector posShift;
@@ -122,15 +126,15 @@ class EfficiencyVsAngleProcessor : public Processor {
 		std::vector<double> thresholds ;
 
 		/*--------------------Root output object--------------------*/
-		std::string outputRootName ;
-		TFile* file ;
-		TTree* tree ;
+		std::string outputRootName = "" ;
+		TFile* file = nullptr ;
+		TTree* tree = nullptr ;
 
 
-		TH2D* mulAngleHist ;
-		TH2D* eff1AngleHist ;
-		TH2D* eff2AngleHist ;
-		TH2D* eff3AngleHist ;
+		TH2D* mulAngleHist = nullptr ;
+		TH2D* eff1AngleHist = nullptr ;
+		TH2D* eff2AngleHist = nullptr ;
+		TH2D* eff3AngleHist = nullptr ;
 
 		std::vector<int> nTracksAngleVec ;
 		std::vector<double> mulAngleVec ;
@@ -138,19 +142,19 @@ class EfficiencyVsAngleProcessor : public Processor {
 		std::vector<double> eff2AngleVec ;
 		std::vector<double> eff3AngleVec ;
 
-		TH2D* trackPositionHist ;
+		TH2D* trackPositionHist = nullptr ;
 
-		int layerID ;
-		int difID ;
-		int asicID ;
-		int padID ;
-		double multiplicity ;
-		double multiplicityError ;
+		int layerID = 0 ;
+		int difID = 0 ;
+		int asicID = 0 ;
+		int padID = 0 ;
+		double multiplicity = 0 ;
+		double multiplicityError = 0 ;
 
 		std::vector<double> efficiencies ;
 		std::vector<double> efficienciesError ;
 
-		int nTracks ;
+		int nTracks = 0 ;
 
 		std::vector<double> position ;
 } ;

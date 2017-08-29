@@ -33,11 +33,12 @@
 using namespace lcio ;
 using namespace marlin ;
 
-class AnalysisProcessor : public Processor {
+class AnalysisProcessor : public Processor
+{
 
-	public:
+	public :
 
-		virtual Processor*  newProcessor() { return new AnalysisProcessor ; }
+		virtual Processor* newProcessor() { return new AnalysisProcessor ; }
 
 
 		AnalysisProcessor() ;
@@ -49,63 +50,66 @@ class AnalysisProcessor : public Processor {
 
 		/** Called for every run.
    */
-		virtual void processRunHeader( LCRunHeader* run ) ;
+		virtual void processRunHeader(LCRunHeader* ) ;
 
 		/** Called for every event - the working horse.
    */
-		virtual void processEvent( LCEvent * evt ) ;
+		virtual void processEvent(LCEvent* evt) ;
 
 
-		virtual void check( LCEvent * evt ) ;
+		virtual void check(LCEvent* ) ;
 
 
 		/** Called after data processing for clean up.
    */
 		virtual void end() ;
 
-		void AlgorithmRegistrationParameters();
+		void AlgorithmRegistrationParameters() ;
 
-		void clearVec();
+		void clearVec() ;
 
-		void findEventTime(LCEvent* evt,LCCollection* col) ;
+		void findEventTime(LCEvent* evt , LCCollection* _col) ;
 
-		void findSpillEventTime(LCEvent* evt,LCCollection* col) ;
+		void findSpillEventTime(LCEvent* evt , LCCollection* _col) ;
 
 		double getFirst5LayersRMS() ;
 		int getNInteractingLayer() ;
 
+		AnalysisProcessor(const AnalysisProcessor &toCopy) = delete ;
+		void operator=(const AnalysisProcessor &toCopy) = delete ;
+
 
 	protected:
 
-		int _nRun ;
-		int _nEvt ;
+		int _nRun = 0 ;
+		int _nEvt = 0 ;
 		/** Input collection name.
    */
-		std::vector<std::string> _hcalCollections;
+		std::vector<std::string> _hcalCollections ;
 
 	private:
 		std::map<int,HitVec> hitMap ;
 		std::vector<caloobject::CaloCluster2D*> clusterVec ;
 
 		/*--------------------Global parameters--------------------*/
-		int _nActiveLayers;
-		int numElements;
-		LCCollection * col;
-		int _nAsicX;
-		int _nAsicY;
-		std::vector<int> _difList;
-		std::vector<float> edges; //vector to recover geometry parameters
-		CLHEP::Hep3Vector posShift;
+		int _nActiveLayers = 0 ;
+		int numElements = 0 ;
+		LCCollection* col = nullptr ;
+		int _nAsicX = 0 ;
+		int _nAsicY = 0 ;
+		std::vector<int> _difList ;
+		std::vector<float> edges ; //vector to recover geometry parameters
+		CLHEP::Hep3Vector posShift ;
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms list to initialise--------------------*/
-		algorithm::Cluster *algo_Cluster;
-		algorithm::ClusteringHelper *algo_ClusteringHelper;
-		algorithm::Tracking *algo_Tracking;
+		algorithm::Cluster* algo_Cluster;
+		algorithm::ClusteringHelper* algo_ClusteringHelper;
+		algorithm::Tracking* algo_Tracking;
 		algorithm::Hough* algo_Hough ;
-		algorithm::InteractionFinder *algo_InteractionFinder;
-		algorithm::Efficiency *algo_Efficiency;
-		algorithm::AsicKeyFinder *algo_AsicKeyFinder;
+		algorithm::InteractionFinder* algo_InteractionFinder;
+		algorithm::Efficiency* algo_Efficiency;
+		algorithm::AsicKeyFinder* algo_AsicKeyFinder;
 
 		algorithm::Density* algo_density ;
 
@@ -137,58 +141,61 @@ class AnalysisProcessor : public Processor {
 		std::vector<float> thresholdsFloat ;
 		std::vector<double> thresholds ;
 
-		double _timeCut ;
-		unsigned long long _prevBCID ;
-		unsigned long long _bcidRef ;
-		int firstShowerInSpill ;
-		bool firstSpillEvtFound ;
+		double _timeCut = 0 ;
+		unsigned long long _prevBCID = 0 ;
+		unsigned long long _bcidRef = 0 ;
+		int firstShowerInSpill = 0 ;
+		bool firstSpillEvtFound = false ;
 
-		int _timeDif_minus_bif ;
+		int _timeDif_minus_bif = 0 ;
 
 		/*--------------------Root output object--------------------*/
-		std::string outputRootName ;
-		TFile *file ;
-		TTree* tree ;
+		std::string outputRootName = "" ;
+		TFile *file = nullptr ;
+		TTree* tree = nullptr ;
 
-		int eventNumber ;
-		unsigned long long evtTime ;
-		unsigned long long spillEvtTime ;
+		double computingTime = 0 ;
 
-		bool cerenkovTag ;
+		int eventNumber = 0 ;
+		unsigned long long evtTime  = 0 ;
+		unsigned long long spillEvtTime = 0 ;
 
-		int runNumber ;
-		float energy ;
+		bool cerenkovTag = false ;
 
-		int nHit ;
-		int nHit1 ;
-		int nHit2 ;
-		int nHit3 ;
-		int nHough ;
-		int nHough1 ;
-		int nHough2 ;
-		int nHough3 ;
-		int nLayer ;
-		int nInteractingLayer ;
-		int nCluster ;
-		int nMipCluster ;
-		int nTrack ;
+		int runNumber = 0 ;
+		float energy = 0 ;
 
-		double first5LayersRMS ;
+		int nHit = 0 ;
+		int nHit1 = 0 ;
+		int nHit2 = 0 ;
+		int nHit3 = 0 ;
+		int nHough = 0 ;
+		int nHough1 = 0 ;
+		int nHough2 = 0 ;
+		int nHough3 = 0 ;
+		int nLayer = 0 ;
+		int nInteractingLayer = 0 ;
+		int nCluster = 0 ;
+		int nMipCluster = 0 ;
+		int nTrack = 0 ;
+
+		double first5LayersRMS = 0 ;
 
 		std::vector<int> tracksClusterSize ;
 		std::vector<int> tracksClusterNumber ;
 
-		double begin ;
+		double begin = 0 ;
+		double _end = 0 ;
 
-		double reconstructedCosTheta ;
+		double reconstructedCosTheta = 0;
 
-		float transverseRatio ;
+		float transverseRatio = 0 ;
 
-		double density ;
+		double density = 0 ;
 
-		float thrust[4] ;
+		float thrust[4] = {0,0,0,0} ;
 
-		bool neutral ;
+		bool neutral = 0 ;
 
 		std::vector<double> longiProfile ;
 		std::vector<double> radiProfile ;
@@ -198,9 +205,7 @@ class AnalysisProcessor : public Processor {
 		std::vector<int> kVec ;
 		std::vector<int> thrVec ;
 
-
-		double emFraction ;
-
+		double emFraction = 0 ;
 
 } ;
 
