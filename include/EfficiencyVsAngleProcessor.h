@@ -14,7 +14,7 @@
 #include "CaloObject/CaloHit.h"
 #include "CaloObject/Asic.h"
 
-#include "Algorithm/Cluster.h"
+#include "Algorithm/Clustering.h"
 #include "Algorithm/Tracking.h"
 #include "Algorithm/ClusteringHelper.h"
 #include "Algorithm/InteractionFinder.h"

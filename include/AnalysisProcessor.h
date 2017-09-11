@@ -15,7 +15,7 @@
 #include "CaloObject/CaloCluster.h"
 #include "CaloObject/Asic.h"
 #include "CaloObject/Shower.h"
-#include "Algorithm/Cluster.h"
+#include "Algorithm/Clustering.h"
 #include "Algorithm/Tracking.h"
 #include "Algorithm/Hough.h"
 #include "Algorithm/ClusteringHelper.h"
