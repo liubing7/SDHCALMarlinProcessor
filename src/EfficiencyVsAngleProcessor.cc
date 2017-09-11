@@ -366,7 +366,7 @@ void EfficiencyVsAngleProcessor::init()
 	_goodTrackCounter = 0 ;
 
 	/*--------------------Algorithms initialisation--------------------*/
-	algo_Cluster=new algorithm::Cluster();
+	algo_Cluster=new algorithm::Clustering();
 	algo_Cluster->SetClusterParameterSetting(m_ClusterParameterSetting);
 
 	algo_ClusteringHelper=new algorithm::ClusteringHelper();
@@ -454,7 +454,7 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 		if ( algo_Efficiency->isTrack() )
 		{
 			caloobject::CaloTrack* track = algo_Efficiency->getTrack() ;
-			caloobject::CaloCluster* cluster = algo_Efficiency->getGoodCluster() ;
+			caloobject::Cluster* cluster = algo_Efficiency->getGoodCluster() ;
 
 			unsigned int cosTheta = static_cast<unsigned int>( std::abs( 100*track->getCosTheta() ) ) ;
 			//			std::cout << cosTheta << std::endl ;

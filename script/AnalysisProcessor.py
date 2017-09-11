@@ -38,6 +38,7 @@ def launch(a , files) :
   <!--Name of the CalorimeterHit collection-->
   <parameter name="CollectionName" type="string" lcioInType="CalorimeterHit">''' + a.collectionName + '''</parameter>
   <!--Name of the root output file-->
+
   <parameter name="RootFileName" type="string" >''' + a.outputFileName + '''</parameter>
   <parameter name="InteractionFinder::PrintDebug" type="bool"> false </parameter>
   <parameter name="Tracking::PrintDebug" type="bool"> false </parameter>

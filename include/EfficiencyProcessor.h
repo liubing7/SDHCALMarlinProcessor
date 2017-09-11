@@ -98,7 +98,7 @@ class EfficiencyProcessor : public Processor
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms list to initialise--------------------*/
-		algorithm::Cluster* algo_Cluster ;
+		algorithm::Clustering* algo_Cluster ;
 		algorithm::ClusteringHelper* algo_ClusteringHelper ;
 		algorithm::Tracking* algo_Tracking ;
 		algorithm::InteractionFinder* algo_InteractionFinder ;

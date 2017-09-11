@@ -1,4 +1,4 @@
-#include "AnalysisProcessor.h"
+#include "AnalysisProcessorILD.h"
 
 #include <iostream>
 
@@ -13,15 +13,15 @@
 
 #include <ctime>
 
-#include "EnergyOfRun.h"
+//#include "EnergyOfRun.h"
 
 using namespace lcio ;
 using namespace marlin ;
 
-AnalysisProcessor aAnalysisProcessor ;
+AnalysisProcessorILD aAnalysisProcessorILD ;
 
-AnalysisProcessor::AnalysisProcessor()
-	: Processor("AnalysisProcessor") ,
+AnalysisProcessorILD::AnalysisProcessorILD()
+	: Processor("AnalysisProcessorILD") ,
 	   _hcalCollections() ,
 	  hitMap() ,
 	  clusterVec() ,
@@ -54,11 +54,11 @@ AnalysisProcessor::AnalysisProcessor()
 {
 
 	// modify processor description
-	_description = "AnalysisProcessor" ;
+	_description = "AnalysisProcessorILD" ;
 
 
 	std::vector<std::string> hcalCollections;
-	hcalCollections.push_back(std::string("HCALBarrel"));
+	hcalCollections.push_back(std::string("HCALOther"));
 	registerInputCollections( LCIO::CALORIMETERHIT,
 							  "CollectionName" ,
 							  "HCAL Collection Names"  ,
@@ -75,10 +75,15 @@ AnalysisProcessor::AnalysisProcessor()
 								runNumber,
 								0 ) ;
 
+	registerProcessorParameter( "energy" ,
+								"energy",
+								energy ,
+								0.0f ) ;
+
 	registerProcessorParameter( "NActiveLayers" ,
 								"Number of active layers",
 								_nActiveLayers,
-								int(48) );
+								48 );
 
 	posShift = CLHEP::Hep3Vector( 0.0 , 0.0 , 0.0 ) ;
 
@@ -95,7 +100,7 @@ AnalysisProcessor::AnalysisProcessor()
 }
 
 
-void AnalysisProcessor::AlgorithmRegistrationParameters()
+void AnalysisProcessorILD::AlgorithmRegistrationParameters()
 {
 	/*------------algorithm::Cluster------------*/
 	registerProcessorParameter( "Cluster::MaxTransversalCellID" ,
@@ -111,7 +116,7 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	registerProcessorParameter( "Cluster::UseDistanceInsteadCellID" ,
 								"Boolean to know if clustering algorithms uses distance instead of cellID to cluster hits together",
 								m_ClusterParameterSetting.useDistanceInsteadCellID,
-								false );
+								true );
 
 	registerProcessorParameter( "Cluster::MaxTransversalDistance" ,
 								"Maximum transversal distance (in mm) between two hits to gathered them in one cluster",
@@ -121,7 +126,7 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	registerProcessorParameter( "Cluster::MaxLongitudinalDistance" ,
 								"Maximum longitudinal distance (in mm) between two hits to gathered them in one cluster",
 								m_ClusterParameterSetting.maxLongitudinalDistance,
-								27.0f );
+								0.0f );
 
 	/*------------algorithm::ClusteringHelper------------*/
 	registerProcessorParameter( "ClusteringHelper::LongitudinalDistanceForIsolation" ,
@@ -199,7 +204,7 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	registerProcessorParameter( "Geometry::PixelSize" ,
 								"Pixel size (assume square pixels)",
 								m_CaloGeomSetting.pixelSize,
-								10.408f );
+								10.0f );
 
 	std::vector<float> vec;
 	vec.push_back(10.408f) ;
@@ -226,10 +231,10 @@ void AnalysisProcessor::AlgorithmRegistrationParameters()
 	/*--------------------------------------------*/
 }
 
-void AnalysisProcessor::init()
+void AnalysisProcessorILD::init()
 {
 	printParameters() ;
-	energy = energyOfRun( runNumber ) ;
+//	energy = energyOfRun( runNumber ) ;
 
 	file = new TFile(outputRootName.c_str(),"RECREATE") ;
 
@@ -323,13 +328,13 @@ void AnalysisProcessor::init()
 
 }
 
-void AnalysisProcessor::processRunHeader(LCRunHeader*)
+void AnalysisProcessorILD::processRunHeader(LCRunHeader*)
 {
 	_nRun++ ;
 	_nEvt = 0 ;
 }
 
-void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
+void AnalysisProcessorILD::findEventTime(LCEvent* evt , LCCollection* _col)
 {
 	unsigned int hitTime = 0 ;
 	EVENT::CalorimeterHit* hit = NULL ;
@@ -364,7 +369,7 @@ void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
 	evtTime = _bcid - hitTime ;
 }
 
-void AnalysisProcessor::findSpillEventTime(LCEvent* evt , LCCollection* _col)
+void AnalysisProcessorILD::findSpillEventTime(LCEvent* evt , LCCollection* _col)
 {
 	unsigned long long _bcid;
 	unsigned long long _bcid1;
@@ -448,7 +453,7 @@ void AnalysisProcessor::findSpillEventTime(LCEvent* evt , LCCollection* _col)
 	_prevBCID = _bcid ;
 }
 
-double AnalysisProcessor::getFirst5LayersRMS()
+double AnalysisProcessorILD::getFirst5LayersRMS()
 {
 	std::sort(clusterVec.begin() , clusterVec.end() , algorithm::ClusteringHelper::SortClusterByLayer) ;
 
@@ -476,7 +481,7 @@ double AnalysisProcessor::getFirst5LayersRMS()
 	return sqrt( x2sum/(n-1) - (xsum*xsum)/(n*(n-1)) + y2sum/(n-1) - (ysum*ysum)/(n*(n-1)) )  ;
 }
 
-int AnalysisProcessor::getNInteractingLayer()
+int AnalysisProcessorILD::getNInteractingLayer()
 {
 	int toReturn = 0 ;
 
@@ -504,7 +509,7 @@ int AnalysisProcessor::getNInteractingLayer()
 	return toReturn ;
 }
 
-void AnalysisProcessor::processEvent( LCEvent * evt )
+void AnalysisProcessorILD::processEvent( LCEvent * evt )
 {
 	clock_t beginClock = clock() ;
 
@@ -513,7 +518,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 	// * Reading HCAL Collections of CalorimeterHits*
 	//
 	//std::string initString;
-	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("M:3,S-1:3,I:9,J:9,K-1:6") ;
+	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("system:0:5,module:5:3,stave:8:3,tower:11:5,layer:16:6,slice:22:4,x:32:-16,z:48:-16") ;
 
 
 	for (unsigned int i(0); i < _hcalCollections.size(); ++i)
@@ -531,13 +536,11 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			{
 				CalorimeterHit* hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
-				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
+				int cellID[] = { static_cast<int>( IDdecoder(hit)["x"]) , static_cast<int>( IDdecoder(hit)["z"]) , static_cast<int>( IDdecoder(hit)["layer"]-1) } ;
 
 				if ( cellID[2] > _nActiveLayers )
 					continue ;
 
-				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96 )
-					continue ;
 
 				caloobject::CaloHit* aHit = new caloobject::CaloHit( cellID , vec , hit->getEnergy() , hit->getTime() , posShift ) ;
 				hitMap[ cellID[2] ].push_back(aHit) ;
@@ -565,8 +568,9 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			findEventTime(evt,col) ;
 			findSpillEventTime(evt,col) ;
-
-			cerenkovTag = evt->parameters().getIntVal( "cerenkovTag" ) ;
+			std::stringstream bifTag("") ;
+			bifTag << "cerenkovTag" ;
+			cerenkovTag = evt->parameters().getIntVal( bifTag.str() ) ;
 
 			clusterVec.clear() ;
 
@@ -668,7 +672,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			nCluster = static_cast<int>( clusterVec.size() ) ;
 
-			if ( clusterVec.at(0)->getPosition()[2] > 4*m_CaloGeomSetting.layerGap )
+			if ( clusterVec.at(0)->getPosition()[2] > ( 4*m_CaloGeomSetting.layerGap + 2670 ) )
 				neutral = true ;
 			else
 				neutral = false ;
@@ -685,9 +689,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			eventNumber = _nEvt ;
 
-
-			if ( evt->getParameters().getNFloat( std::string("ParticleEnergy") ) != 0 )
-				energy = evt->getParameters().getFloatVal( std::string("ParticleEnergy") ) ;
 
 			emFraction = evt->getParameters().getFloatVal( std::string("EMFraction") ) ;
 
@@ -714,7 +715,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 	std::cout << "Event processed : " << _nEvt << std::endl ;
 }
 
-void AnalysisProcessor::clearVec()
+void AnalysisProcessorILD::clearVec()
 {
 	for( std::map<int,HitVec>::iterator it = hitMap.begin() ; it!=hitMap.end() ; ++it )
 		for( HitVec::iterator jt = (it->second).begin() ; jt != (it->second).end() ; ++jt )
@@ -724,13 +725,13 @@ void AnalysisProcessor::clearVec()
 }
 
 
-void AnalysisProcessor::check(LCEvent*)
+void AnalysisProcessorILD::check(LCEvent*)
 {
 	// nothing to check here - could be used to fill checkplots in reconstruction processor
 }
 
 
-void AnalysisProcessor::end()
+void AnalysisProcessorILD::end()
 {
 	file->cd() ;
 

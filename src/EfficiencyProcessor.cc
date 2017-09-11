@@ -344,7 +344,7 @@ void EfficiencyProcessor::init()
 	_goodTrackCounter = 0 ;
 
 	/*--------------------Algorithms initialisation--------------------*/
-	algo_Cluster=new algorithm::Cluster();
+	algo_Cluster=new algorithm::Clustering();
 	algo_Cluster->SetClusterParameterSetting(m_ClusterParameterSetting);
 
 	algo_ClusteringHelper=new algorithm::ClusteringHelper();

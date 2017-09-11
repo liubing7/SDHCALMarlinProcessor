@@ -1,5 +1,5 @@
-#ifndef AnalysisProcessor_h
-#define AnalysisProcessor_h
+#ifndef AnalysisProcessorILD_h
+#define AnalysisProcessorILD_h
 
 #include "marlin/Processor.h"
 #include "lcio.h"
@@ -33,15 +33,15 @@
 using namespace lcio ;
 using namespace marlin ;
 
-class AnalysisProcessor : public Processor
+class AnalysisProcessorILD : public Processor
 {
 
 	public :
 
-		virtual Processor* newProcessor() { return new AnalysisProcessor ; }
+		virtual Processor* newProcessor() { return new AnalysisProcessorILD ; }
 
 
-		AnalysisProcessor() ;
+		AnalysisProcessorILD() ;
 
 		/** Called at the begin of the job before anything is read.
    * Use to initialize the processor, e.g. book histograms.
@@ -75,8 +75,8 @@ class AnalysisProcessor : public Processor
 		double getFirst5LayersRMS() ;
 		int getNInteractingLayer() ;
 
-		AnalysisProcessor(const AnalysisProcessor &toCopy) = delete ;
-		void operator=(const AnalysisProcessor &toCopy) = delete ;
+		AnalysisProcessorILD(const AnalysisProcessorILD &toCopy) = delete ;
+		void operator=(const AnalysisProcessorILD &toCopy) = delete ;
 
 
 	protected:
@@ -152,7 +152,7 @@ class AnalysisProcessor : public Processor
 		unsigned long long evtTime  = 0 ;
 		unsigned long long spillEvtTime = 0 ;
 
-		int cerenkovTag = 0 ;
+		bool cerenkovTag = false ;
 
 		int runNumber = 0 ;
 		float energy = 0 ;
@@ -202,4 +202,4 @@ class AnalysisProcessor : public Processor
 } ;
 
 
-#endif //AnalysisProcessor_h
+#endif //AnalysisProcessorILD_h
