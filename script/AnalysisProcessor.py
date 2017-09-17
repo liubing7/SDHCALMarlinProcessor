@@ -19,6 +19,7 @@ def launch(a , files) :
 	pid = os.getpid()
 
 	xmlFileName = str(pid) + '.xml'
+	tempOutputFile = str(pid) + '.root'
 
 	xml = '''<marlin>
  <execute>
@@ -39,7 +40,7 @@ def launch(a , files) :
   <parameter name="CollectionName" type="string" lcioInType="CalorimeterHit">''' + a.collectionName + '''</parameter>
   <!--Name of the root output file-->
 
-  <parameter name="RootFileName" type="string" >''' + a.outputFileName + '''</parameter>
+  <parameter name="RootFileName" type="string" >''' + tempOutputFile + '''</parameter>
   <parameter name="InteractionFinder::PrintDebug" type="bool"> false </parameter>
   <parameter name="Tracking::PrintDebug" type="bool"> false </parameter>
 
@@ -53,9 +54,9 @@ def launch(a , files) :
 	xmlFile.write(xml)
 	xmlFile.close()
 
-
 	os.system('Marlin ' + xmlFileName)
 	os.system('rm ' + xmlFileName)
+	os.system('mv ' + tempOutputFile + ' ' + a.outputFileName)
 
 
 
