@@ -12,7 +12,10 @@
 #include <string.h>
 
 #include <ctime>
+#include <array>
+#include <numeric>
 
+#include "Algorithm/Distance.h"
 #include "EnergyOfRun.h"
 
 using namespace lcio ;
@@ -22,7 +25,7 @@ AnalysisProcessor aAnalysisProcessor ;
 
 AnalysisProcessor::AnalysisProcessor()
 	: Processor("AnalysisProcessor") ,
-	   _hcalCollections() ,
+	  _hcalCollections() ,
 	  hitMap() ,
 	  clusterVec() ,
 	  edges() ,  //vector to recover geometry parameters
@@ -41,8 +44,6 @@ AnalysisProcessor::AnalysisProcessor()
 	  m_CaloGeomSetting() ,
 	  m_ShowerAnalyserParameterSetting() ,
 	  algo_ShowerAnalyser() ,
-	  thresholdsFloat() ,
-	  thresholds() ,
 	  tracksClusterSize() ,
 	  tracksClusterNumber() ,
 	  longiProfile() ,
@@ -58,7 +59,7 @@ AnalysisProcessor::AnalysisProcessor()
 
 
 	std::vector<std::string> hcalCollections;
-	hcalCollections.push_back(std::string("HCALBarrel"));
+	hcalCollections.push_back(std::string("HCALBarrel")) ;
 	registerInputCollections( LCIO::CALORIMETERHIT,
 							  "CollectionName" ,
 							  "HCAL Collection Names"  ,
@@ -68,12 +69,17 @@ AnalysisProcessor::AnalysisProcessor()
 	registerProcessorParameter( "RootFileName" ,
 								"File name for the root output",
 								outputRootName,
-								std::string("toto.root") );
+								std::string("toto.root") ) ;
 
 	registerProcessorParameter( "nRun" ,
 								"Number of run",
 								runNumber,
 								0 ) ;
+
+	registerProcessorParameter( "recoverMissingDifsFile" ,
+								"Xml file name for the missing difs to recover",
+								recoverXmlFile,
+								std::string("/home/garillot/SDHCALMarlinProcessor/recoverXML/H2Sept2017.xml") ) ;
 
 	registerProcessorParameter( "NActiveLayers" ,
 								"Number of active layers",
@@ -88,7 +94,7 @@ AnalysisProcessor::AnalysisProcessor()
 
 	registerProcessorParameter( "Thresholds" ,
 								"Vector of thresholds",
-								thresholdsFloat,
+								thresholds ,
 								thresholdsVec ) ;
 
 	AlgorithmRegistrationParameters() ;
@@ -274,6 +280,8 @@ void AnalysisProcessor::init()
 	tree->Branch("reconstructedCosTheta" , &reconstructedCosTheta) ;
 
 	tree->Branch("thrust" , &thrust , "thrust[4]/F") ;
+
+	tree->Branch("meanRadius" , &meanRadius) ;
 	tree->Branch("longiProfile" , "std::vector<double>" , &longiProfile) ;
 	tree->Branch("radiProfile" , "std::vector<double>" , &radiProfile) ;
 
@@ -285,7 +293,13 @@ void AnalysisProcessor::init()
 	tree->Branch("I" , "std::vector<int>" , &iVec) ;
 	tree->Branch("J" , "std::vector<int>" , &jVec) ;
 	tree->Branch("K" , "std::vector<int>" , &kVec) ;
-	tree->Branch("thr" , "std::vector<int>" , &thrVec) ;
+	tree->Branch("thr" , "std::vector<float>" , &thrVec) ;
+
+	tree->Branch("nHitRecover" , &nHitRecover) ;
+	tree->Branch("nHitRecover1" , &nHit1Recover) ;
+	tree->Branch("nHitRecover2" , &nHit2Recover) ;
+	tree->Branch("nHitRecover3" , &nHit3Recover) ;
+
 
 	_timeCut = 5e9 ; //20 sec
 	_prevBCID = 0 ;
@@ -321,7 +335,52 @@ void AnalysisProcessor::init()
 
 	algo_density = new algorithm::Density() ;
 
+	processRecoverXmlFile() ;
+
 }
+
+void AnalysisProcessor::processRecoverXmlFile()
+{
+	TiXmlDocument doc(recoverXmlFile) ;
+	if( !doc.LoadFile() )
+	{
+		std::cerr << "erreur lors du chargement" << std::endl ;
+		std::cerr << "error #" << doc.ErrorId() << " : " << doc.ErrorDesc() << std::endl ;
+		return ;
+	}
+
+	TiXmlHandle hdl(&doc);
+	TiXmlElement* elem = hdl.FirstChildElement().FirstChildElement().Element() ;
+
+	if( !elem )
+	{
+		std::cerr << "le noeud à atteindre n'existe pas" << std::endl ;
+		return ;
+	}
+
+	while ( elem )
+	{
+		int id = std::atoi(elem->Attribute("id")) ;
+
+		std::string s = elem->Attribute("dif") ;
+		std::istringstream iss(s) ;
+		std::vector<std::string> result{ std::istream_iterator<std::string>(iss) , {} } ;
+
+		for ( const auto& i : result )
+		{
+			if ( i == std::string("left") ) recoverList.push_back( {id , left} ) ;
+			else if ( i == std::string("center") ) recoverList.push_back( {id , center} ) ;
+			else if ( i == std::string("right") ) recoverList.push_back( {id , right} ) ;
+			else if ( i == std::string("all") ) recoverList.push_back( {id , all} ) ;
+			else { std::cerr << "Error in recoverXmlFile : don't understand '" << i << "' for layer " << id << std::endl ; continue ; }
+		}
+		elem = elem->NextSiblingElement() ;
+	}
+
+	for ( const auto& i : recoverList )
+		std::cout << "Will try to recover dif " << i.second << " of Layer " << i.first << std::endl ;
+}
+
 
 void AnalysisProcessor::processRunHeader(LCRunHeader*)
 {
@@ -332,7 +391,7 @@ void AnalysisProcessor::processRunHeader(LCRunHeader*)
 void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
 {
 	unsigned int hitTime = 0 ;
-	EVENT::CalorimeterHit* hit = NULL ;
+	EVENT::CalorimeterHit* hit = nullptr ;
 	if ( _col->getNumberOfElements() != 0 )
 	{
 		try
@@ -359,7 +418,7 @@ void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
 	_bcid2 = evt->parameters().getIntVal( pname2.str() ) ;
 
 	unsigned long long Shift = 16777216ULL;
-	_bcid=_bcid1*Shift+_bcid2;
+	_bcid = _bcid1*Shift + _bcid2 ;
 	streamlog_out( DEBUG ) << "event : " << _nEvt+1 << " ; bcid: " << _bcid << " ; hitTime: " << hitTime <<std::endl;
 	evtTime = _bcid - hitTime ;
 }
@@ -497,62 +556,92 @@ int AnalysisProcessor::getNInteractingLayer()
 		if ( n <= 5 )
 			continue ;
 
-		double rmsLay = sqrt( x2sum/n - (xsum*xsum)/(n*n) + y2sum/n - (ysum*ysum)/(n*n) )  ;
+		double rmsLay = sqrt( x2sum/n - (xsum*xsum)/(n*n) + y2sum/n - (ysum*ysum)/(n*n) ) ;
 		if ( rmsLay > 10 )
 			toReturn++ ;
 	}
 	return toReturn ;
 }
 
+std::vector<float> AnalysisProcessor::recoverHits() const
+{
+	std::vector<float> modifs(thresholds.size() + 1) ;
+
+	for ( const auto& it : recoverList )
+	{
+		int layerBefore = std::max(0 , it.first - 1) ;
+		int layerAfter = std::min(_nActiveLayers-1 , it.first + 1) ;
+
+		const HitVec& before = hitMap.at(layerBefore) ;
+		const HitVec& current = hitMap.at(it.first) ;
+		const HitVec& after = hitMap.at(layerAfter) ;
+
+		std::vector<int> nBefore(thresholds.size() + 1) ;
+		std::vector<int> nCurrent(thresholds.size() + 1) ;
+		std::vector<int> nAfter(thresholds.size() + 1) ;
+
+		int min = recoverLimits.at(it.second).first ;
+		int max = recoverLimits.at(it.second).second ;
+
+		for ( caloobject::CaloHit* hit : before )
+			if ( hit->getCellID()[1] >= min && hit->getCellID()[1] <= max )
+				nBefore.at( static_cast<unsigned int>(hit->getEnergy()) )++ ;
+
+		for ( caloobject::CaloHit* hit : after )
+			if ( hit->getCellID()[1] >= min && hit->getCellID()[1] <= max )
+				nAfter.at( static_cast<unsigned int>(hit->getEnergy()) )++ ;
+
+		for ( caloobject::CaloHit* hit : current )
+			if ( hit->getCellID()[1] >= min && hit->getCellID()[1] <= max )
+				nCurrent.at( static_cast<unsigned int>(hit->getEnergy()) )-- ;
+
+		for ( unsigned int i = 1 ; i < modifs.size() ; ++i )
+		{
+			modifs.at(0) += nCurrent.at(i) ;
+			modifs.at(i) += nCurrent.at(i) ;
+
+			modifs.at(0) += 0.5f*(nBefore.at(i) + nAfter.at(i)) ;
+			modifs.at(i) += 0.5f*(nBefore.at(i) + nAfter.at(i)) ;
+		}
+	}
+	return modifs ;
+}
+
+
 void AnalysisProcessor::processEvent( LCEvent * evt )
 {
 	clock_t beginClock = clock() ;
 
+	for ( int i = 0 ; i < _nActiveLayers ; ++i )
+		hitMap.insert( {i , {}} ) ;
 
-	//
-	// * Reading HCAL Collections of CalorimeterHits*
-	//
-	//std::string initString;
 	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("M:3,S-1:3,I:9,J:9,K-1:6") ;
 
 
-	for (unsigned int i(0); i < _hcalCollections.size(); ++i)
+	for (unsigned int i(0); i < _hcalCollections.size() ; ++i)
 	{
 		std::string colName =  _hcalCollections[i] ;
 		try
 		{
 			col = evt->getCollection( _hcalCollections[i].c_str() ) ;
-			//initString = col->getParameters().getStringVal(LCIO::CellIDEncoding);
 			numElements = col->getNumberOfElements();
-			//      UTIL::CellIDDecoder<CalorimeterHit*> idDecoder(col);
 
 			int NHIT = 0 ;
-			for (int j=0; j < numElements; ++j)
+			for ( int j = 0 ; j < numElements ; ++j )
 			{
 				CalorimeterHit* hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
 				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
 
-				if ( cellID[2] > _nActiveLayers )
+				if ( cellID[2] >= _nActiveLayers )
 					continue ;
 
 				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96 )
 					continue ;
 
 				caloobject::CaloHit* aHit = new caloobject::CaloHit( cellID , vec , hit->getEnergy() , hit->getTime() , posShift ) ;
-				hitMap[ cellID[2] ].push_back(aHit) ;
+				hitMap.at(cellID[2]).push_back(aHit) ;
 				NHIT++ ;
-
-				/*
-				if( hit->getPosition()[0]<0 || hit->getPosition()[1]<0 || hit->getPosition()[2]<0 )
-				{
-					std::cout << "WARNING : hit at "
-							  << hit->getPosition()[0] << ",\t"
-							  << hit->getPosition()[1] << ",\t"
-							  << hit->getPosition()[2] << std::endl;
-					getchar() ;
-				}
-				*/
 			}
 
 			if ( NHIT < 5 )
@@ -561,7 +650,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				clearVec() ;
 				continue ;
 			}
-
 
 			findEventTime(evt,col) ;
 			findSpillEventTime(evt,col) ;
@@ -585,6 +673,12 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			nHit3 = shower->getSDNHits()[2] ;
 			nLayer = shower->getNlayer() ;
 
+			std::vector<float> modif = recoverHits() ;
+			nHitRecover = nHit + modif.at(0) ;
+			nHit1Recover = nHit1 + modif.at(1) ;
+			nHit2Recover = nHit2 + modif.at(2) ;
+			nHit3Recover = nHit3 + modif.at(3) ;
+
 			iVec.clear() ;
 			jVec.clear() ;
 			kVec.clear() ;
@@ -602,7 +696,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				begin = -10 ;
 			else
 				begin = shower->getFirstIntCluster()->getLayerID() ;
-			//				begin = shower->getStartingPosition()[2] ;
 
 			_end = shower->getLastClusterPosition() ;
 
@@ -611,6 +704,22 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			for ( unsigned int jj = 0 ; jj < 4 ; jj++ )
 				thrust[jj] = shower->getThrust().at(jj) ;
+
+			algorithm::Distance<caloobject::CaloHit,CLHEP::Hep3Vector> dist ;
+
+			meanRadius = 0 ;
+			for ( int ii = 0 ; ii < _nActiveLayers ; ++ii )
+			{
+				for ( auto& cl : hitMap[ii] )
+				{
+					CLHEP::Hep3Vector vec(thrust[0] + thrust[1]*cl->getPosition().z() ,
+							thrust[2] + thrust[3]*cl->getPosition().z() ,
+							cl->getPosition().z() ) ;
+
+					meanRadius += dist.getDistance(cl , vec) ;
+				}
+			}
+			meanRadius /= nHit ;
 
 
 			longiProfile = shower->getLongitudinal() ;
@@ -652,17 +761,16 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			nHough1 = 0 ;
 			nHough2 = 0 ;
 			nHough3 = 0 ;
+
 			for ( HitVec::const_iterator it = houghHitVec.begin() ; it != houghHitVec.end() ; ++it )
 			{
-				if ( (*it)->getEnergy() >= thresholdsFloat.at(2) )
+				if ( (*it)->getEnergy() >= thresholds.at(2) )
 					nHough3++ ;
-				else if ( (*it)->getEnergy() >= thresholdsFloat.at(1) )
+				else if ( (*it)->getEnergy() >= thresholds.at(1) )
 					nHough2++ ;
 				else
 					nHough1++ ;
 			}
-
-
 
 			nInteractingLayer = getNInteractingLayer() ;
 
@@ -716,7 +824,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 void AnalysisProcessor::clearVec()
 {
-	for( std::map<int,HitVec>::iterator it = hitMap.begin() ; it!=hitMap.end() ; ++it )
+	for( std::map<int,HitVec>::iterator it = hitMap.begin() ; it != hitMap.end() ; ++it )
 		for( HitVec::iterator jt = (it->second).begin() ; jt != (it->second).end() ; ++jt )
 			delete *jt ;
 

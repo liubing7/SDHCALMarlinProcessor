@@ -25,6 +25,8 @@
 #include "Algorithm/ShowerAnalyser.h"
 #include "Algorithm/Density.h"
 
+#include <marlin/tinyxml.h>
+
 #include <TFile.h>
 #include <TTree.h>
 #include <TH1D.h>
@@ -79,15 +81,28 @@ class AnalysisProcessor : public Processor
 		void operator=(const AnalysisProcessor &toCopy) = delete ;
 
 
-	protected:
+	protected :
+
+		enum DifPos
+		{
+			left , center , right , all
+		} ;
+		const std::map<DifPos , std::pair<int,int>> recoverLimits = { {left,{1,32}} , {center,{33,64}} , {right,{65,96}} , {all,{1,96}} } ;
+
+		void processRecoverXmlFile() ;
+		std::vector<float> recoverHits() const ;
+
+		std::vector< std::pair<int , DifPos> > recoverList = {} ;
 
 		int _nRun = 0 ;
 		int _nEvt = 0 ;
 		/** Input collection name.
    */
-		std::vector<std::string> _hcalCollections ;
+		std::vector<std::string> _hcalCollections = {} ;
 
-	private:
+		std::string recoverXmlFile = "" ;
+
+	private :
 		std::map<int,HitVec> hitMap ;
 		std::vector<caloobject::CaloCluster2D*> clusterVec ;
 
@@ -100,21 +115,21 @@ class AnalysisProcessor : public Processor
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms list to initialise--------------------*/
-		algorithm::Clustering* algo_Cluster;
-		algorithm::ClusteringHelper* algo_ClusteringHelper;
-		algorithm::Tracking* algo_Tracking;
+		algorithm::Clustering* algo_Cluster ;
+		algorithm::ClusteringHelper* algo_ClusteringHelper ;
+		algorithm::Tracking* algo_Tracking ;
 		algorithm::Hough* algo_Hough ;
-		algorithm::InteractionFinder* algo_InteractionFinder;
+		algorithm::InteractionFinder* algo_InteractionFinder ;
 		algorithm::Density* algo_density ;
 
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms setting parameter structure--------------------*/
-		algorithm::clusterParameterSetting m_ClusterParameterSetting;
-		algorithm::ClusteringHelperParameterSetting m_ClusteringHelperParameterSetting;
-		algorithm::TrackingParameterSetting m_TrackingParameterSetting;
+		algorithm::clusterParameterSetting m_ClusterParameterSetting ;
+		algorithm::ClusteringHelperParameterSetting m_ClusteringHelperParameterSetting ;
+		algorithm::TrackingParameterSetting m_TrackingParameterSetting ;
 		algorithm::HoughParameterSetting m_HoughParameterSetting ;
-		algorithm::InteractionFinderParameterSetting m_InteractionFinderParameterSetting;
+		algorithm::InteractionFinderParameterSetting m_InteractionFinderParameterSetting ;
 
 		/*------------------------------------------------------------------------------*/
 
@@ -125,13 +140,9 @@ class AnalysisProcessor : public Processor
 		algorithm::ShowerAnalyserParameterSetting m_ShowerAnalyserParameterSetting ;
 		algorithm::ShowerAnalyser* algo_ShowerAnalyser ;
 
-		/*--------------------CaloObject list to initialise--------------------*/
-
-
 		/*---------------------------------------------------------------------*/
 
-		std::vector<float> thresholdsFloat ;
-		std::vector<double> thresholds ;
+		std::vector<float> thresholds = {} ;
 
 		double _timeCut = 0 ;
 		unsigned long long _prevBCID = 0 ;
@@ -149,7 +160,7 @@ class AnalysisProcessor : public Processor
 		double computingTime = 0 ;
 
 		int eventNumber = 0 ;
-		unsigned long long evtTime  = 0 ;
+		unsigned long long evtTime = 0 ;
 		unsigned long long spillEvtTime = 0 ;
 
 		int cerenkovTag = 0 ;
@@ -181,11 +192,12 @@ class AnalysisProcessor : public Processor
 
 		double reconstructedCosTheta = 0 ;
 
+		double density = 0 ;
 		float transverseRatio = 0 ;
 
-		double density = 0 ;
-
 		float thrust[4] = {0,0,0,0} ;
+
+		double meanRadius = 0 ;
 
 		bool neutral = 0 ;
 
@@ -195,9 +207,14 @@ class AnalysisProcessor : public Processor
 		std::vector<int> iVec ;
 		std::vector<int> jVec ;
 		std::vector<int> kVec ;
-		std::vector<int> thrVec ;
+		std::vector<float> thrVec ;
 
 		double emFraction = 0 ;
+
+		float nHitRecover = 0 ;
+		float nHit1Recover = 0 ;
+		float nHit2Recover = 0 ;
+		float nHit3Recover = 0 ;
 
 } ;
 

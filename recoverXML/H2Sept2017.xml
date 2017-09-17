@@ -1,0 +1,7 @@
+<recover name="H2Sept2017">
+	<layer id="1" dif="left right" />
+	<layer id="2" dif="right" />
+	<layer id="6" dif="left" />
+	<layer id="18" dif="all" />
+	<layer id="33" dif="right" />
+</recover>
