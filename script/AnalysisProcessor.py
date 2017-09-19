@@ -9,6 +9,7 @@ class Params :
 		self.outputFileName = 'analysis.root'
 		self.runNumber = 0
 		self.maxRecordNumber = 0
+		self.recoverXmlFile = ''
 
 def launch(a , files) :
 
@@ -28,7 +29,6 @@ def launch(a , files) :
 
  <global>
   <parameter name="LCIOInputFiles">''' + fileList + '''</parameter>
-  <!-- limit the number of processed records (run+evt): -->
   <parameter name="MaxRecordNumber" value="''' + str(a.maxRecordNumber) + '''"/>
   <!--parameter name="SkipNEvents" value="18000" /-->
   <parameter name="SupressCheck" value="false" />
@@ -36,14 +36,10 @@ def launch(a , files) :
  </global>
 
  <processor name="AnalysisProcessor" type="AnalysisProcessor">
-  <!--Name of the CalorimeterHit collection-->
+
   <parameter name="CollectionName" type="string" lcioInType="CalorimeterHit">''' + a.collectionName + '''</parameter>
-  <!--Name of the root output file-->
-
+  <parameter name="recoverXmlFile" type="string" >''' + a.recoverXmlFile + '''</parameter>
   <parameter name="RootFileName" type="string" >''' + tempOutputFile + '''</parameter>
-  <parameter name="InteractionFinder::PrintDebug" type="bool"> false </parameter>
-  <parameter name="Tracking::PrintDebug" type="bool"> false </parameter>
-
   <parameter name="nRun" type="int">''' + str(a.runNumber) + '''</parameter>
 
  </processor>

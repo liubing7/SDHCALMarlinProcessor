@@ -9,6 +9,7 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include <iostream>
 
 #include "CaloObject/CaloGeom.h"
 #include "CaloObject/CaloHit.h"
@@ -34,6 +35,20 @@
 
 using namespace lcio ;
 using namespace marlin ;
+
+enum DifPos { left , center , right , all } ;
+std::ostream& operator<<(std::ostream& os , const DifPos& difPos)
+{
+	if ( difPos == left )
+		os << "left" ;
+	else if ( difPos == center )
+		os << "center" ;
+	else if ( difPos == right )
+		os << "right" ;
+	else
+		os << "all" ;
+	return os ;
+}
 
 class AnalysisProcessor : public Processor
 {
@@ -83,16 +98,15 @@ class AnalysisProcessor : public Processor
 
 	protected :
 
-		enum DifPos
-		{
-			left , center , right , all
-		} ;
-		const std::map<DifPos , std::pair<int,int>> recoverLimits = { {left,{1,32}} , {center,{33,64}} , {right,{65,96}} , {all,{1,96}} } ;
+		const std::map<DifPos , std::pair<int,int>> difLimits = { {left,{1,32}} , {center,{33,64}} , {right,{65,96}} , {all,{1,96}} } ;
 
 		void processRecoverXmlFile() ;
 		std::vector<float> recoverHits() const ;
+		std::vector<float> ignoreHits() const ;
 
 		std::vector< std::pair<int , DifPos> > recoverList = {} ;
+		std::vector< std::pair<int , DifPos> > ignoreList = {} ;
+
 
 		int _nRun = 0 ;
 		int _nEvt = 0 ;
@@ -211,10 +225,10 @@ class AnalysisProcessor : public Processor
 
 		double emFraction = 0 ;
 
-		float nHitRecover = 0 ;
-		float nHit1Recover = 0 ;
-		float nHit2Recover = 0 ;
-		float nHit3Recover = 0 ;
+		float nHitCustom = 0 ;
+		float nHit1Custom = 0 ;
+		float nHit2Custom = 0 ;
+		float nHit3Custom = 0 ;
 
 } ;
 

@@ -76,10 +76,15 @@ AnalysisProcessor::AnalysisProcessor()
 								runNumber,
 								0 ) ;
 
-	registerProcessorParameter( "recoverMissingDifsFile" ,
+	registerProcessorParameter( "recoverXmlFile" ,
 								"Xml file name for the missing difs to recover",
 								recoverXmlFile,
-								std::string("/home/garillot/SDHCALMarlinProcessor/recoverXML/H2Sept2017.xml") ) ;
+								std::string("") ) ;
+
+	//	registerProcessorParameter( "recoverMissingDifsFile" ,
+	//								"Xml file name for the missing difs to recover",
+	//								recoverXmlFile,
+	//								std::string("/home/garillot/SDHCALMarlinProcessor/recoverXML/H2Sept2017.xml") ) ;
 
 	registerProcessorParameter( "NActiveLayers" ,
 								"Number of active layers",
@@ -241,10 +246,7 @@ void AnalysisProcessor::init()
 
 	tree = dynamic_cast<TTree*>( file->Get("tree") ) ;
 	if( !tree )
-	{
-		std::cout << "tree creation" << std::endl ;
 		tree = new TTree("tree","Shower variables") ;
-	}
 
 	tree->Branch("eventNumber", &eventNumber) ;
 	tree->Branch("computingTime", &computingTime) ;
@@ -295,10 +297,10 @@ void AnalysisProcessor::init()
 	tree->Branch("K" , "std::vector<int>" , &kVec) ;
 	tree->Branch("thr" , "std::vector<float>" , &thrVec) ;
 
-	tree->Branch("nHitRecover" , &nHitRecover) ;
-	tree->Branch("nHitRecover1" , &nHit1Recover) ;
-	tree->Branch("nHitRecover2" , &nHit2Recover) ;
-	tree->Branch("nHitRecover3" , &nHit3Recover) ;
+	tree->Branch("nHitCustom" , &nHitCustom) ;
+	tree->Branch("nHit1Custom" , &nHit1Custom) ;
+	tree->Branch("nHit2Custom" , &nHit2Custom) ;
+	tree->Branch("nHit3Custom" , &nHit3Custom) ;
 
 
 	_timeCut = 5e9 ; //20 sec
@@ -344,41 +346,76 @@ void AnalysisProcessor::processRecoverXmlFile()
 	TiXmlDocument doc(recoverXmlFile) ;
 	if( !doc.LoadFile() )
 	{
-		std::cerr << "erreur lors du chargement" << std::endl ;
-		std::cerr << "error #" << doc.ErrorId() << " : " << doc.ErrorDesc() << std::endl ;
-		return ;
-	}
-
-	TiXmlHandle hdl(&doc);
-	TiXmlElement* elem = hdl.FirstChildElement().FirstChildElement().Element() ;
-
-	if( !elem )
-	{
-		std::cerr << "le noeud à atteindre n'existe pas" << std::endl ;
-		return ;
-	}
-
-	while ( elem )
-	{
-		int id = std::atoi(elem->Attribute("id")) ;
-
-		std::string s = elem->Attribute("dif") ;
-		std::istringstream iss(s) ;
-		std::vector<std::string> result{ std::istream_iterator<std::string>(iss) , {} } ;
-
-		for ( const auto& i : result )
+		if ( doc.ErrorId() == 2 )
+			std::cout << "No recover XML file provided or file not existing" << std::endl ;
+		else
 		{
-			if ( i == std::string("left") ) recoverList.push_back( {id , left} ) ;
-			else if ( i == std::string("center") ) recoverList.push_back( {id , center} ) ;
-			else if ( i == std::string("right") ) recoverList.push_back( {id , right} ) ;
-			else if ( i == std::string("all") ) recoverList.push_back( {id , all} ) ;
-			else { std::cerr << "Error in recoverXmlFile : don't understand '" << i << "' for layer " << id << std::endl ; continue ; }
+			std::cerr << "Erreur lors du chargement" << std::endl ;
+			std::cerr << "Error #" << doc.ErrorId() << " : " << doc.ErrorDesc() << std::endl ;
 		}
-		elem = elem->NextSiblingElement() ;
+		return ;
+	}
+
+	TiXmlHandle handle(&doc) ;
+	TiXmlElement* root = handle.FirstChild().ToElement() ;
+
+	//loop on recover ot ignore nodes
+	TiXmlNode* type = root->FirstChild() ;
+	while ( type )
+	{
+		if ( type->ValueStr() == std::string("recover") )
+		{
+			TiXmlElement* elem = type->FirstChildElement() ;
+
+			while ( elem )
+			{
+				int id = std::atoi(elem->Attribute("id")) ;
+
+				std::string s = elem->Attribute("dif") ;
+				std::istringstream iss(s) ;
+				std::vector<std::string> result{ std::istream_iterator<std::string>(iss) , {} } ;
+
+				for ( const auto& i : result )
+				{
+					if ( i == std::string("left") ) recoverList.push_back( {id , left} ) ;
+					else if ( i == std::string("center") ) recoverList.push_back( {id , center} ) ;
+					else if ( i == std::string("right") ) recoverList.push_back( {id , right} ) ;
+					else if ( i == std::string("all") ) recoverList.push_back( {id , all} ) ;
+					else { std::cerr << "Error in recoverXmlFile : don't understand '" << i << "' for layer " << id << std::endl ; continue ; }
+				}
+				elem = elem->NextSiblingElement() ;
+			}
+		}
+		else if ( type->ValueStr() == std::string("ignore") )
+		{
+			TiXmlElement* elem = type->FirstChildElement() ;
+
+			while ( elem )
+			{
+				int id = std::atoi(elem->Attribute("id")) ;
+
+				std::string s = elem->Attribute("dif") ;
+				std::istringstream iss(s) ;
+				std::vector<std::string> result{ std::istream_iterator<std::string>(iss) , {} } ;
+
+				for ( const auto& i : result )
+				{
+					if ( i == std::string("left") ) ignoreList.push_back( {id , left} ) ;
+					else if ( i == std::string("center") ) ignoreList.push_back( {id , center} ) ;
+					else if ( i == std::string("right") ) ignoreList.push_back( {id , right} ) ;
+					else if ( i == std::string("all") ) ignoreList.push_back( {id , all} ) ;
+					else { std::cerr << "Error in recoverXmlFile : don't understand '" << i << "' for layer " << id << std::endl ; continue ; }
+				}
+				elem = elem->NextSiblingElement() ;
+			}
+		}
+		type = type->NextSiblingElement() ;
 	}
 
 	for ( const auto& i : recoverList )
-		std::cout << "Will try to recover dif " << i.second << " of Layer " << i.first << std::endl ;
+		std::cout << "Will try to recover " << i.second << " dif of Layer " << i.first << std::endl ;
+	for ( const auto& i : ignoreList )
+		std::cout << "Will try to ignore " << i.second << " dif of Layer " << i.first << std::endl ;
 }
 
 
@@ -580,8 +617,8 @@ std::vector<float> AnalysisProcessor::recoverHits() const
 		std::vector<int> nCurrent(thresholds.size() + 1) ;
 		std::vector<int> nAfter(thresholds.size() + 1) ;
 
-		int min = recoverLimits.at(it.second).first ;
-		int max = recoverLimits.at(it.second).second ;
+		int min = difLimits.at(it.second).first ;
+		int max = difLimits.at(it.second).second ;
 
 		for ( caloobject::CaloHit* hit : before )
 			if ( hit->getCellID()[1] >= min && hit->getCellID()[1] <= max )
@@ -602,6 +639,32 @@ std::vector<float> AnalysisProcessor::recoverHits() const
 
 			modifs.at(0) += 0.5f*(nBefore.at(i) + nAfter.at(i)) ;
 			modifs.at(i) += 0.5f*(nBefore.at(i) + nAfter.at(i)) ;
+		}
+	}
+	return modifs ;
+}
+
+std::vector<float> AnalysisProcessor::ignoreHits() const
+{
+	std::vector<float> modifs(thresholds.size() + 1) ;
+
+	for ( const auto& it : ignoreList )
+	{
+		const HitVec& current = hitMap.at(it.first) ;
+
+		std::vector<int> nCurrent(thresholds.size() + 1) ;
+
+		int min = difLimits.at(it.second).first ;
+		int max = difLimits.at(it.second).second ;
+
+		for ( caloobject::CaloHit* hit : current )
+			if ( hit->getCellID()[1] >= min && hit->getCellID()[1] <= max )
+				nCurrent.at( static_cast<unsigned int>(hit->getEnergy()) )-- ;
+
+		for ( unsigned int i = 1 ; i < modifs.size() ; ++i )
+		{
+			modifs.at(0) += nCurrent.at(i) ;
+			modifs.at(i) += nCurrent.at(i) ;
 		}
 	}
 	return modifs ;
@@ -673,11 +736,13 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			nHit3 = shower->getSDNHits()[2] ;
 			nLayer = shower->getNlayer() ;
 
-			std::vector<float> modif = recoverHits() ;
-			nHitRecover = nHit + modif.at(0) ;
-			nHit1Recover = nHit1 + modif.at(1) ;
-			nHit2Recover = nHit2 + modif.at(2) ;
-			nHit3Recover = nHit3 + modif.at(3) ;
+			std::vector<float> modifReco = recoverHits() ;
+			std::vector<float> modifIgnore = ignoreHits() ;
+
+			nHitCustom = nHit + modifReco.at(0) + modifIgnore.at(0) ;
+			nHit1Custom = nHit1 + modifReco.at(1) + modifIgnore.at(1) ;
+			nHit2Custom = nHit2 + modifReco.at(2) + modifIgnore.at(2) ;
+			nHit3Custom = nHit3 + modifReco.at(3) + modifIgnore.at(3) ;
 
 			iVec.clear() ;
 			jVec.clear() ;
