@@ -449,9 +449,9 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 
 	for( int K = trackBegin ; K <= trackEnd ; K++ )
 	{
-		algo_Efficiency->Run(layers.at(K) , clusters) ;
+		algorithm::Efficiency::Status a = algo_Efficiency->Run(layers.at(K) , clusters) ;
 
-		if ( algo_Efficiency->isTrack() )
+		if ( a == algorithm::Efficiency::ok )
 		{
 			caloobject::CaloTrack* track = algo_Efficiency->getTrack() ;
 			caloobject::Cluster* cluster = algo_Efficiency->getGoodCluster() ;

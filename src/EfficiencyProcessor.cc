@@ -239,8 +239,8 @@ void EfficiencyProcessor::AlgorithmRegistrationParameters()
 								10.408f );
 
 	std::vector<float> vec;
-	vec.push_back(10.408f) ;
-	vec.push_back(97*10.408f) ;
+	vec.push_back(5.204f) ;
+	vec.push_back(97*10.408f - 5.204f) ;
 	registerProcessorParameter( "Geometry::DetectorTransverseSize" ,
 								"Define the detector transverse size used by efficiency algorithm (vector size must be 2 or 4; if 2 -> first value is min, second value is max; if 4 -> two first values define x edges , two last values define y edges) ",
 								edges,
@@ -258,7 +258,7 @@ void EfficiencyProcessor::AlgorithmRegistrationParameters()
 		m_CaloGeomSetting.ymax=edges[3];
 	}
 	else{
-		std::cout << "WARING : Wrong number of values in paramater Geometry::DetectorTransverseSize => will use default value -500.0, +500.0" << std::endl;
+		std::cout << "WARNING : Wrong number of values in paramater Geometry::DetectorTransverseSize => will use default value -500.0, +500.0" << std::endl;
 	}
 	/*--------------------------------------------*/
 
@@ -365,8 +365,9 @@ void EfficiencyProcessor::init()
 
 	for ( unsigned int k = 0 ; k < static_cast<unsigned int>(_nActiveLayers) ; k++ )
 	{
-		caloobject::Layer* aLayer = new caloobject::SDHCALLayer(static_cast<int>(k) , _difList.at(3*k+2) , _difList.at(3*k+1) , _difList.at(k)) ;
-		aLayer->setPosition( CLHEP::Hep3Vector(10.408 , 10.408 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
+		caloobject::Layer* aLayer = new caloobject::SDHCALLayer(static_cast<int>(k) , _difList.at(3*k+2) , _difList.at(3*k+1) , _difList.at(3*k)) ;
+				aLayer->setPosition( CLHEP::Hep3Vector(10.408 , 10.408 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
+//		aLayer->setPosition( CLHEP::Hep3Vector(5.204 , 5.204 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
 		aLayer->buildAsics() ;
 		aLayer->setThresholds(thresholds) ;
 		layers.push_back(aLayer) ;
@@ -382,8 +383,6 @@ void EfficiencyProcessor::processRunHeader(LCRunHeader* )
 
 void EfficiencyProcessor::DoTracking()
 {
-	//	std::cout << "DoTracking()" << std::endl ;
-
 	std::vector<caloobject::CaloCluster2D*> clusters ;
 	for(std::map<int,std::vector<caloobject::CaloHit*> >::iterator it = hitMap.begin() ; it != hitMap.end() ; ++it)
 		algo_Cluster->Run(it->second , clusters) ;
@@ -398,10 +397,10 @@ void EfficiencyProcessor::DoTracking()
 			it-- ;
 		}
 	}
-	caloobject::CaloTrack* track = NULL ;
+	caloobject::CaloTrack* track = nullptr ;
 	algo_Tracking->Run(clusters,track) ;
 
-	if( NULL != track )
+	if( nullptr != track )
 	{
 		algo_InteractionFinder->Run(clusters , track->getTrackParameters()) ;
 
@@ -420,8 +419,6 @@ void EfficiencyProcessor::DoTracking()
 
 void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*> &clusters)
 {
-	//	std::cout << "LayerProperties()" << std::endl ;
-
 	int trackBegin = (*clusters.begin())->getLayerID() ;
 	int trackEnd = (*(clusters.end()-1))->getLayerID() ;
 	if ( trackBegin == 1 )
@@ -430,18 +427,15 @@ void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*
 	if ( trackEnd == _nActiveLayers-2 )
 		trackEnd = _nActiveLayers-1 ;
 
-
 	for( int K = trackBegin ; K <= trackEnd ; K++ )
 	{
-		//		std::cout << "K : " << K << std::endl ;
-		//		std::cout << "toto" << std::endl ;
-		algo_Efficiency->Run(layers.at(K) , clusters) ;
-		//		std::cout << "titi" << std::endl ;
+		algorithm::Efficiency::Status a = algo_Efficiency->Run(layers.at(K) , clusters) ;
 
-		if ( algo_Efficiency->isTrack() )
+		if ( a == algorithm::Efficiency::ok )
 		{
-			layers.at(K)->update( algo_Efficiency->getExpectedPosition() , algo_Efficiency->getGoodCluster() ) ;
-			trackPositionHist->Fill( algo_Efficiency->getExpectedPosition().x() , algo_Efficiency->getExpectedPosition().y() ) ;
+			CLHEP::Hep3Vector pos = algo_Efficiency->getExpectedPosition() + CLHEP::Hep3Vector(5.204 , 5.204 , 0) ;
+			trackPositionHist->Fill( pos.x() , pos.y() ) ;
+			layers.at(K)->update( pos , algo_Efficiency->getGoodCluster() ) ;
 		}
 	}
 }
