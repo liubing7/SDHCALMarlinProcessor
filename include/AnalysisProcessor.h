@@ -90,7 +90,6 @@ class AnalysisProcessor : public Processor
 		void findSpillEventTime(LCEvent* evt , LCCollection* _col) ;
 
 		double getFirst5LayersRMS() ;
-		int getNInteractingLayer() ;
 
 		AnalysisProcessor(const AnalysisProcessor &toCopy) = delete ;
 		void operator=(const AnalysisProcessor &toCopy) = delete ;
@@ -148,11 +147,7 @@ class AnalysisProcessor : public Processor
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------CaloObject setting parameter structure--------------------*/
-		caloobject::GeomParameterSetting m_CaloGeomSetting;
-		/*------------------------------------------------------------------------------*/
-
-		algorithm::ShowerAnalyserParameterSetting m_ShowerAnalyserParameterSetting ;
-		algorithm::ShowerAnalyser* algo_ShowerAnalyser ;
+		caloobject::GeomParameterSetting m_CaloGeomSetting ;
 
 		/*---------------------------------------------------------------------*/
 

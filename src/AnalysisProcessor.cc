@@ -42,12 +42,10 @@ AnalysisProcessor::AnalysisProcessor()
 	  m_HoughParameterSetting() ,
 	  m_InteractionFinderParameterSetting() ,
 	  m_CaloGeomSetting() ,
-	  m_ShowerAnalyserParameterSetting() ,
-	  algo_ShowerAnalyser() ,
 	  tracksClusterSize() ,
 	  tracksClusterNumber() ,
 	  longiProfile() ,
-	  radiProfile()  ,
+	  radiProfile() ,
 	  iVec() ,
 	  jVec() ,
 	  kVec() ,
@@ -328,17 +326,9 @@ void AnalysisProcessor::init()
 	algo_InteractionFinder=new algorithm::InteractionFinder();
 	algo_InteractionFinder->SetInteractionFinderParameterSetting(m_InteractionFinderParameterSetting) ;
 
-	m_ShowerAnalyserParameterSetting.energyCalibrationOption = std::string("sdhcal") ;
-	m_ShowerAnalyserParameterSetting.interactionFinderParams = m_InteractionFinderParameterSetting ;
-	m_ShowerAnalyserParameterSetting.geometry = m_CaloGeomSetting ;
-
-	algo_ShowerAnalyser = new algorithm::ShowerAnalyser() ;
-	algo_ShowerAnalyser->SetShowerAnalyserParameterSetting(m_ShowerAnalyserParameterSetting) ;
-
 	algo_density = new algorithm::Density() ;
 
 	processRecoverXmlFile() ;
-
 }
 
 void AnalysisProcessor::processRecoverXmlFile()
@@ -572,34 +562,6 @@ double AnalysisProcessor::getFirst5LayersRMS()
 	return sqrt( x2sum/(n-1) - (xsum*xsum)/(n*(n-1)) + y2sum/(n-1) - (ysum*ysum)/(n*(n-1)) )  ;
 }
 
-int AnalysisProcessor::getNInteractingLayer()
-{
-	int toReturn = 0 ;
-
-	for( std::map<int,std::vector<caloobject::CaloHit*> >::iterator it = hitMap.begin() ; it!=hitMap.end() ; ++it )
-	{
-		double xsum = 0 , x2sum = 0 , ysum = 0 , y2sum = 0 ;
-
-		for( std::vector<caloobject::CaloHit*>::iterator jt = (it->second).begin() ; jt != (it->second).end() ; ++jt )
-		{
-			double x = (*jt)->getPosition()[0] ;
-			double y = (*jt)->getPosition()[1] ;
-			xsum += x ;
-			x2sum += x*x ;
-			ysum += y ;
-			y2sum += y*y ;
-		}
-		double n = (it->second).size() ;
-		if ( n <= 5 )
-			continue ;
-
-		double rmsLay = sqrt( x2sum/n - (xsum*xsum)/(n*n) + y2sum/n - (ysum*ysum)/(n*n) ) ;
-		if ( rmsLay > 10 )
-			toReturn++ ;
-	}
-	return toReturn ;
-}
-
 std::vector<float> AnalysisProcessor::recoverHits() const
 {
 	std::vector<float> modifs(thresholds.size() + 1) ;
@@ -726,15 +688,23 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			std::sort(clusterVec.begin() , clusterVec.end() , algorithm::ClusteringHelper::SortClusterByLayer) ;
 
-			caloobject::SDHCALShower* shower = new caloobject::SDHCALShower(clusterVec) ;
 
-			algo_ShowerAnalyser->Run(shower) ;
+			caloobject::DigitalShower* shower = new caloobject::DigitalShower(clusterVec) ;
 
-			nHit = shower->getNhit() ;
-			nHit1 = shower->getSDNHits()[0] ;
-			nHit2 = shower->getSDNHits()[1] ;
-			nHit3 = shower->getSDNHits()[2] ;
-			nLayer = shower->getNlayer() ;
+			shower->setInteractionSettings(m_InteractionFinderParameterSetting) ;
+			shower->setGeometrySettings(m_CaloGeomSetting) ;
+
+			shower->computePCA() ;
+			shower->computeThrust() ;
+			shower->computeInteraction() ;
+			shower->computeProfile() ;
+
+			nHit = shower->getNHits().at(0) ;
+			nHit1 = shower->getNHits().at(1) ;
+			nHit2 = shower->getNHits().at(2) ;
+			nHit3 = shower->getNHits().at(3) ;
+			nLayer = static_cast<int>( shower->getFiredLayers().size() ) ;
+			nInteractingLayer = static_cast<int>( shower->getInteractingLayers().size() ) ;
 
 			std::vector<float> modifReco = recoverHits() ;
 			std::vector<float> modifIgnore = ignoreHits() ;
@@ -757,12 +727,12 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				thrVec.push_back( (*it)->getEnergy() ) ;
 			}
 
-			if ( !shower->findInteraction() )
+			if ( !shower->getFirstIntCluster() )
 				begin = -10 ;
 			else
 				begin = shower->getFirstIntCluster()->getLayerID() ;
 
-			_end = shower->getLastClusterPosition() ;
+			_end = shower->getLastClusterLayer() ;
 
 			transverseRatio = shower->getTransverseRatio() ;
 			reconstructedCosTheta = shower->getReconstructedCosTheta() ;
@@ -787,11 +757,11 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			meanRadius /= nHit ;
 
 
-			longiProfile = shower->getLongitudinal() ;
+			longiProfile = shower->getLongitudinalProfile() ;
 			for ( unsigned int lp = 0 ; lp < longiProfile.size() ; ++lp )
 				longiProfile.at(lp) /= nHit ;
 
-			radiProfile = shower->getTransverse() ;
+			radiProfile = shower->getTransverseProfile() ;
 			for ( unsigned int rp = 0 ; rp < radiProfile.size() ; ++rp )
 				radiProfile.at(rp) /= nHit ;
 
@@ -836,8 +806,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				else
 					nHough1++ ;
 			}
-
-			nInteractingLayer = getNInteractingLayer() ;
 
 			nCluster = static_cast<int>( clusterVec.size() ) ;
 
