@@ -62,7 +62,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ansi -pedantic -Wno-long-long -st
 include_directories( ./include )
 #INSTALL_DIRECTORY( ./include DESTINATION . FILES_MATCHING PATTERN "*.h" )
 
-FILE(GLOB_RECURSE headers "include/*.h")
+FILE(GLOB_RECURSE headers "include/*.h" "include/*.hpp")
 FILE(GLOB_RECURSE sources "src/*.cc")
 
 # add library

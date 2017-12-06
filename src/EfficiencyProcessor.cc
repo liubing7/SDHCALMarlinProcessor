@@ -1,5 +1,6 @@
 #include "EfficiencyProcessor.h"
 #include <iostream>
+#include <fstream>
 
 #include <EVENT/LCCollection.h>
 #include <EVENT/MCParticle.h>
@@ -8,7 +9,10 @@
 
 // ----- include for verbosity dependend logging ---------
 #include "marlin/VerbosityLevels.h"
-#include <string.h>
+#include <string>
+
+#include "json.hpp"
+
 using namespace lcio ;
 using namespace marlin ;
 
@@ -19,7 +23,6 @@ EfficiencyProcessor::EfficiencyProcessor()
 	: Processor("EfficiencyProcessor") ,
 	  _hcalCollections() ,
 	  hitMap() ,
-	  _difList() ,
 	  edges() ,
 	  posShift() ,
 	  algo_Cluster() ,
@@ -65,30 +68,12 @@ EfficiencyProcessor::EfficiencyProcessor()
 								_nActiveLayers,
 								48 );
 
-	registerProcessorParameter( "N_ASICX" ,
-								"Number of ASIC per layer in x direction",
-								_nAsicX,
-								int(12) ) ;
 
-	registerProcessorParameter( "N_ASICY" ,
-								"Number of ASIC per layer in y direction",
-								_nAsicY,
-								int(12) ) ;
-
-	int difTab[] = { 181,94,30, 174,175,176, 158,142,141, 129,118,119, 164,152,151,  74,61,75,
-					 156,111,110, 102,177,103,  133,136,134,  128,120,121,  65,64,58,  148,72,73,
-					 78,79,60,  44,43,113,  243,242,241,   186,127,154,  147,70,71,   47,139,140,
-					 143,77,76,   159,91,36,   179,178,183,  41,42,67,  137,46,138,  131,173,144,
-					 189,184,160,  172,167,171,  146,135,145,  185,170,180,  187,188,190,  169,165,166,
-					 155,57,50,  153,108,25,   51,56,109,   107,150,116,  126,124,49,  117,149,115,
-					 48,45,114,   98,93,40,   92,97,100,  62,106,132,  101,35,99,  122,123,130,
-					 163,161,162,  104,29,112,  59,53,54,  96,90,27,  95,8,5,  63,87,18 } ;
-	std::vector<int> difVec(difTab, difTab + sizeof(difTab) / sizeof(int) ) ;
-
-	registerProcessorParameter( "DifList" ,
-								"Vector of dif number",
-								_difList,
-								difVec ) ;
+	//maping on JSON file
+	registerProcessorParameter("geometry" ,
+							   "JSON geometry" ,
+							   geometryFile ,
+							   std::string("") ) ;
 
 
 	std::vector<float> vec ;
@@ -303,6 +288,36 @@ void EfficiencyProcessor::AlgorithmRegistrationParameters()
 								false );
 }
 
+void EfficiencyProcessor::processGeometry(std::string jsonFile)
+{
+	difList.clear() ;
+
+	if ( jsonFile == std::string("") )
+	{
+		std::cout << "WARNING : no geometry file provided, will put Difs 1,2,3 each layer" << std::endl ;
+		for ( unsigned int i = 0 ; i < static_cast<unsigned int>(_nActiveLayers) ; ++i )
+			difList.insert( {i , {{ 1 , 2 , 3 }}} ) ;
+
+		return ;
+	}
+
+	std::ifstream filea(jsonFile) ;
+	auto json = nlohmann::json::parse(filea) ;
+
+	auto chambersList = json.at("chambers") ;
+
+	for ( const auto& i : chambersList )
+	{
+		int slot = i.at("slot") ;
+
+		std::array<int,3> difLayer = {{ i.at("left") , i.at("center") , i.at("right") }} ;
+
+		difList.insert( {slot , difLayer} ) ;
+	}
+
+	filea.close() ;
+}
+
 void EfficiencyProcessor::init()
 {
 	std::sort(thresholdsFloat.begin() , thresholdsFloat.end() ) ;
@@ -313,6 +328,8 @@ void EfficiencyProcessor::init()
 
 
 	printParameters() ;
+
+	processGeometry(geometryFile) ;
 
 	file = new TFile(outputRootName.c_str() ,"RECREATE") ;
 
@@ -365,9 +382,10 @@ void EfficiencyProcessor::init()
 
 	for ( unsigned int k = 0 ; k < static_cast<unsigned int>(_nActiveLayers) ; k++ )
 	{
-		caloobject::Layer* aLayer = new caloobject::SDHCALLayer(static_cast<int>(k) , _difList.at(3*k+2) , _difList.at(3*k+1) , _difList.at(3*k)) ;
-				aLayer->setPosition( CLHEP::Hep3Vector(10.408 , 10.408 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
-//		aLayer->setPosition( CLHEP::Hep3Vector(5.204 , 5.204 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
+		caloobject::Layer* aLayer = new caloobject::SDHCALLayer(static_cast<int>(k) , difList.at(k)[0] , difList.at(k)[1] , difList.at(k)[2] ) ;
+		aLayer->setPosition( CLHEP::Hep3Vector(10.408 , 10.408 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
+
+		//		aLayer->setPosition( CLHEP::Hep3Vector(5.204 , 5.204 , (k+1)*m_AsicKeyFinderParameterSetting.layerGap) ) ;
 		aLayer->buildAsics() ;
 		aLayer->setThresholds(thresholds) ;
 		layers.push_back(aLayer) ;
@@ -442,26 +460,22 @@ void EfficiencyProcessor::LayerProperties(std::vector<caloobject::CaloCluster2D*
 
 void EfficiencyProcessor::processEvent( LCEvent * evt )
 {
-	//
-	// * Reading HCAL Collections of CalorimeterHits*
-	//
-
-	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("M:3,S-1:3,I:9,J:9,K-1:6");
-
 	for (unsigned int i(0); i < _hcalCollections.size(); ++i)
 	{
 		std::string colName =  _hcalCollections[i] ;
 		try
 		{
 			col = evt->getCollection( _hcalCollections[i].c_str() ) ;
-			//initString = col->getParameters().getStringVal(LCIO::CellIDEncoding);
+
+			UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder(col);
 			numElements = col->getNumberOfElements();
-			//      UTIL::CellIDDecoder<CalorimeterHit*> idDecoder(col);
 			for (int j=0; j < numElements; ++j)
 			{
 				CalorimeterHit * hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
+
 				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
+				//				int cellID[] = { static_cast<int>( IDdecoder(hit)["x"]) + 48 , static_cast<int>( IDdecoder(hit)["y"]) + 48 , static_cast<int>( IDdecoder(hit)["layer"]) } ;
 
 				if ( cellID[2] >= _nActiveLayers )
 					continue ;
@@ -472,6 +486,7 @@ void EfficiencyProcessor::processEvent( LCEvent * evt )
 				if (hit->getEnergy() < thresholds.at(0) )
 					continue ;
 
+				vec = CLHEP::Hep3Vector( cellID[0]*10.408 , cellID[1]*10.408 , (cellID[2]+1)*26.131f ) ;
 				caloobject::CaloHit* aHit = new caloobject::CaloHit(cellID,vec,hit->getEnergy(),hit->getTime() , posShift) ;
 				hitMap[cellID[2]].push_back(aHit) ;
 			}

@@ -7,6 +7,7 @@ class Params :
 		self.collectionName = 'HCALEndcap'
 		self.cosThetaLimit = 0.9
 		self.thresholds = '1.0 2.0 3.0'
+		self.geometry = ''
 		self.outputFileName = 'map.root'
 
 def launch(a , files) :
@@ -37,9 +38,8 @@ def launch(a , files) :
  </global>
 
  <processor name="EfficiencyProcessor" type="EfficiencyProcessor">
-  <!--Name of the CalorimeterHit collection-->
   <parameter name="CollectionName" type="string" lcioInType="CalorimeterHit"> ''' + a.collectionName + '''</parameter>
-  <!--Name of the root output file-->
+  <parameter name="geometry" type="string">''' + a.geometry + '''</parameter>
   <parameter name="RootFileName" type="string" > ''' + tempOutputFile + ''' </parameter>
   <parameter name="InteractionFinder::PrintDebug" type="bool"> false </parameter>
   <parameter name="Tracking::CosThetaLimit" type="float"> ''' + str(a.cosThetaLimit) + ''' </parameter>

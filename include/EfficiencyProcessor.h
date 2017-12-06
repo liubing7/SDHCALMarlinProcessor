@@ -67,7 +67,6 @@ class EfficiencyProcessor : public Processor
 		void LayerProperties(std::vector<caloobject::CaloCluster2D*> &clusters);
 		void clearVec();
 		void DoTracking();
-		inline int findDifID(int key) { return _difList.at( key/1000*3 + 2-key%1000/12/4 ) ; }
 
 		//		inline int findAsicID(int key) {return sdhcal_asic_table[ 4*(key%1000%12) + (key%1000/12)%4 ] ; }
 
@@ -75,6 +74,8 @@ class EfficiencyProcessor : public Processor
 		void operator=(const EfficiencyProcessor &toCopy) = delete ;
 
 	protected :
+
+		void processGeometry(std::string jsonFile) ;
 
 		int _nRun = 0 ;
 		int _nEvt = 0 ;
@@ -90,11 +91,12 @@ class EfficiencyProcessor : public Processor
 		int _nActiveLayers = 0 ;
 		int numElements= 0 ;
 		LCCollection* col = nullptr ;
-		int _nAsicX = 0 ;
-		int _nAsicY = 0 ;
-		std::vector<int> _difList;
 		std::vector<float> edges; //vector to recover geometry parameters
 		CLHEP::Hep3Vector posShift;
+
+		std::string geometryFile = "" ;
+
+		std::map<unsigned int , std::array<int,3> > difList {} ;
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------Algorithms list to initialise--------------------*/
