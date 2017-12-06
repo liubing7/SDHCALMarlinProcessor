@@ -87,8 +87,6 @@ class AnalysisProcessor : public Processor
 
 		void findEventTime(LCEvent* evt , LCCollection* _col) ;
 
-		void findSpillEventTime(LCEvent* evt , LCCollection* _col) ;
-
 		double getFirst5LayersRMS() ;
 
 		AnalysisProcessor(const AnalysisProcessor &toCopy) = delete ;
@@ -156,8 +154,8 @@ class AnalysisProcessor : public Processor
 		double _timeCut = 0 ;
 		unsigned long long _prevBCID = 0 ;
 		unsigned long long _bcidRef = 0 ;
-		int firstShowerInSpill = 0 ;
-		bool firstSpillEvtFound = false ;
+
+		unsigned long long firstBCIDOfRun = 0 ;
 
 		int _timeDif_minus_bif = 0 ;
 
@@ -210,13 +208,14 @@ class AnalysisProcessor : public Processor
 
 		bool neutral = 0 ;
 
-		std::vector<double> longiProfile ;
-		std::vector<double> radiProfile ;
+		std::vector<double> longiProfile = {} ;
+		std::vector<double> radiProfile = {} ;
 
-		std::vector<int> iVec ;
-		std::vector<int> jVec ;
-		std::vector<int> kVec ;
-		std::vector<float> thrVec ;
+		std::vector<int> iVec = {} ;
+		std::vector<int> jVec = {} ;
+		std::vector<int> kVec = {} ;
+		std::vector<float> thrVec = {} ;
+		std::vector<float> timeVec = {} ;
 
 		double emFraction = 0 ;
 
@@ -224,7 +223,6 @@ class AnalysisProcessor : public Processor
 		float nHit1Custom = 0 ;
 		float nHit2Custom = 0 ;
 		float nHit3Custom = 0 ;
-
 } ;
 
 

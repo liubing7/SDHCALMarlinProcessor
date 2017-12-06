@@ -37,16 +37,8 @@ EfficiencyVsAngleProcessor::EfficiencyVsAngleProcessor()
 	  m_EfficiencyParameterSetting() ,
 	  m_AsicKeyFinderParameterSetting() ,
 	  m_CaloGeomSetting() ,
-	  layers() ,
 	  thresholdsFloat() ,
 	  thresholds() ,
-	  nTracksAngleVec() ,
-	  mulAngleVec() ,
-	  eff1AngleVec() ,
-	  eff2AngleVec() ,
-	  eff3AngleVec() ,
-	  efficiencies() ,
-	  efficienciesError() ,
 	  position()
 {
 
@@ -333,31 +325,20 @@ void EfficiencyVsAngleProcessor::init()
 		tree = new TTree("tree" , "Shower variables") ;
 	}
 
-	tree->Branch("LayerID" , &layerID) ;
-	tree->Branch("DifID" , &difID) ;
-	tree->Branch("AsicID" , &asicID) ;
-	tree->Branch("PadID" , &padID) ;
-
-	tree->Branch("Efficiencies" , "std::vector<double>" , &efficiencies ) ;
-	tree->Branch("EfficienciesError" , "std::vector<double>" , &efficienciesError ) ;
-
-
+	tree->Branch("cosAngle" , &cosAngle) ;
 	tree->Branch("Multiplicity" , &multiplicity) ;
 	tree->Branch("MultiplicityError" , &multiplicityError) ;
+	tree->Branch("Efficiencies" , "std::vector<double>" , &efficiencies ) ;
+	tree->Branch("EfficienciesError" , "std::vector<double>" , &efficienciesError ) ;
 	tree->Branch("Ntrack" , &nTracks) ;
-	tree->Branch("Position" , &position) ;
-
-	nTracksAngleVec = std::vector<int>(100 , 0) ;
-	mulAngleVec = std::vector<double>(100 , 0.0) ;
-	eff1AngleVec = std::vector<double>(100 , 0.0) ;
-	eff2AngleVec = std::vector<double>(100 , 0.0) ;
-	eff3AngleVec = std::vector<double>(100 , 0.0) ;
 
 
-	mulAngleHist = new TH2D("mulAngleHist" , "mulAngleHist" , 100 , 0 , 1 , 100 , 0 , 4) ;
-	eff1AngleHist = new TH2D("eff1AngleHist" , "eff1AngleHist" , 100 , 0 , 1 , 100 , 0 , 1) ;
-	eff2AngleHist = new TH2D("eff2AngleHist" , "eff2AngleHist" , 100 , 0 , 1 , 100 , 0 , 0.5) ;
-	eff3AngleHist = new TH2D("eff3AngleHist" , "eff3AngleHist" , 100 , 0 , 1 , 100 , 0 , 0.1) ;
+	nTracksAngleVec = std::vector<int>(50 , 0) ;
+	mulAngleVec = std::vector<double>(50 , 0.0) ;
+	mulSquareAngleVec = std::vector<double>(50 , 0.0) ;
+	eff1AngleVec = std::vector<double>(50 , 0.0) ;
+	eff2AngleVec = std::vector<double>(50 , 0.0) ;
+	eff3AngleVec = std::vector<double>(50 , 0.0) ;
 
 	trackPositionHist = new TH2D("trackPosition" , "trackPosition" , 1010 , 0 , 1010 , 1010 , 0 , 1010) ;
 
@@ -456,18 +437,18 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 			caloobject::CaloTrack* track = algo_Efficiency->getTrack() ;
 			caloobject::Cluster* cluster = algo_Efficiency->getGoodCluster() ;
 
-			unsigned int cosTheta = static_cast<unsigned int>( std::abs( 100*track->getCosTheta() ) ) ;
-			//			std::cout << cosTheta << std::endl ;
+			unsigned int cosTheta = static_cast<unsigned int>( std::abs( 50*track->getCosTheta() ) ) ;
 
-			if (cosTheta >= 100) //for binning
-				cosTheta = 99 ;
+			if (cosTheta >= 50) //for binning
+				cosTheta = 49 ;
 
 			nTracksAngleVec.at(cosTheta)++ ;
 
 			if ( cluster )
 			{
-				//				std::cout << cluster << std::endl ;
 				mulAngleVec.at(cosTheta) += cluster->getHits().size() ;
+				mulSquareAngleVec.at(cosTheta) += cluster->getHits().size()*cluster->getHits().size() ;
+
 				float maxThr = cluster->getMaxEnergy() ;
 
 				if ( maxThr >= thresholds.at(0) )
@@ -485,11 +466,7 @@ void EfficiencyVsAngleProcessor::LayerProperties(std::vector<caloobject::CaloClu
 
 void EfficiencyVsAngleProcessor::processEvent( LCEvent * evt )
 {
-	//
-	// * Reading HCAL Collections of CalorimeterHits*
-	//
-
-	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("M:3,S-1:3,I:9,J:9,K-1:6");
+	//	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("M:3,S-1:3,I:9,J:9,K-1:6");
 
 	for (unsigned int i(0); i < _hcalCollections.size(); ++i)
 	{
@@ -497,14 +474,20 @@ void EfficiencyVsAngleProcessor::processEvent( LCEvent * evt )
 		try
 		{
 			col = evt->getCollection( _hcalCollections[i].c_str() ) ;
-			//initString = col->getParameters().getStringVal(LCIO::CellIDEncoding);
+
+			UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder(col) ;
+
 			numElements = col->getNumberOfElements();
-			//      UTIL::CellIDDecoder<CalorimeterHit*> idDecoder(col);
+
 			for (int j=0; j < numElements; ++j)
 			{
 				CalorimeterHit * hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
+
 				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
+
+				//				int cellID[] = { static_cast<int>( IDdecoder(hit)["x"]) + 48 , static_cast<int>( IDdecoder(hit)["y"]) + 48 , static_cast<int>( IDdecoder(hit)["layer"]) } ;
+
 
 				if ( cellID[2] > _nActiveLayers )
 					continue ;
@@ -518,6 +501,7 @@ void EfficiencyVsAngleProcessor::processEvent( LCEvent * evt )
 					continue ;
 				}
 
+				vec = CLHEP::Hep3Vector( cellID[0]*10.408 , cellID[1]*10.408 , (cellID[2]+1)*26.131f ) ;
 				caloobject::CaloHit *aHit = new caloobject::CaloHit(cellID,vec,hit->getEnergy(),hit->getTime() , posShift) ;
 				hitMap[cellID[2]].push_back(aHit) ;
 			}
@@ -554,18 +538,44 @@ void EfficiencyVsAngleProcessor::end()
 {
 	file->cd() ;
 
-	for ( unsigned int i = 0 ; i < 100 ; ++i )
+	for ( unsigned int i = 0 ; i < 50 ; ++i )
 	{
+		cosAngle = 1.0f*i/50 ;
+
+		//multiplicity calcul
+		if ( eff1AngleVec.at(i) < std::numeric_limits<double>::epsilon() )
+		{
+			multiplicityError = 0.0 ;
+		}
+		else
+		{
+			double var = mulSquareAngleVec.at(i)/eff1AngleVec.at(i) - (mulAngleVec.at(i)/eff1AngleVec.at(i))*(mulAngleVec.at(i)/eff1AngleVec.at(i)) ;
+
+			if ( var < std::numeric_limits<double>::epsilon() )
+				var = 1.0/( std::sqrt(12*eff1AngleVec.at(i)) ) ;
+
+			if ( eff1AngleVec.at(i) < 2 )
+				multiplicityError = mulAngleVec.at(i)/eff1AngleVec.at(i) ;
+			else
+				multiplicityError = sqrt( var/(eff1AngleVec.at(i)-1.0) ) ;
+		}
+
 		mulAngleVec.at(i) /= eff1AngleVec.at(i) ;
-		std::cout << "  CosTheta : " << 1.0*i/100 << "  mul : " << mulAngleVec.at(i) << std::endl ;
+
+		multiplicity = mulAngleVec.at(i) ;
+
+		std::cout << "  CosTheta : " << cosAngle << "  mul : " << mulAngleVec.at(i) << std::endl ;
 		eff1AngleVec.at(i) /= nTracksAngleVec.at(i) ;
 		eff2AngleVec.at(i) /= nTracksAngleVec.at(i) ;
 		eff3AngleVec.at(i) /= nTracksAngleVec.at(i) ;
-	}
 
-	for ( unsigned int i = 0 ; i < 100 ; ++i )
-	{
-		std::cout << "  CosTheta : " << 1.0*i/100 << "  eff3 : " << eff3AngleVec.at(i) << std::endl ;
+		efficiencies.clear() ;
+		efficiencies.push_back( eff1AngleVec.at(i) ) ;
+		efficiencies.push_back( eff2AngleVec.at(i) ) ;
+		efficiencies.push_back( eff3AngleVec.at(i) ) ;
+		nTracks = nTracksAngleVec.at(i) ;
+
+		tree->Fill() ;
 	}
 
 

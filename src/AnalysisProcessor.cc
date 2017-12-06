@@ -43,13 +43,7 @@ AnalysisProcessor::AnalysisProcessor()
 	  m_InteractionFinderParameterSetting() ,
 	  m_CaloGeomSetting() ,
 	  tracksClusterSize() ,
-	  tracksClusterNumber() ,
-	  longiProfile() ,
-	  radiProfile() ,
-	  iVec() ,
-	  jVec() ,
-	  kVec() ,
-	  thrVec()
+	  tracksClusterNumber()
 {
 
 	// modify processor description
@@ -294,18 +288,16 @@ void AnalysisProcessor::init()
 	tree->Branch("J" , "std::vector<int>" , &jVec) ;
 	tree->Branch("K" , "std::vector<int>" , &kVec) ;
 	tree->Branch("thr" , "std::vector<float>" , &thrVec) ;
+	tree->Branch("time" , "std::vector<float>" , &timeVec) ;
 
 	tree->Branch("nHitCustom" , &nHitCustom) ;
 	tree->Branch("nHit1Custom" , &nHit1Custom) ;
 	tree->Branch("nHit2Custom" , &nHit2Custom) ;
 	tree->Branch("nHit3Custom" , &nHit3Custom) ;
 
-
 	_timeCut = 5e9 ; //20 sec
 	_prevBCID = 0 ;
 	_bcidRef = 0 ;
-	firstShowerInSpill = 1 ;
-	firstSpillEvtFound = true ;
 
 	_nRun = 0 ;
 	_nEvt = 0 ;
@@ -323,7 +315,7 @@ void AnalysisProcessor::init()
 	algo_Hough = new algorithm::Hough() ;
 	algo_Hough->SetHoughParameterSetting(m_HoughParameterSetting) ;
 
-	algo_InteractionFinder=new algorithm::InteractionFinder();
+	algo_InteractionFinder = new algorithm::InteractionFinder() ;
 	algo_InteractionFinder->SetInteractionFinderParameterSetting(m_InteractionFinderParameterSetting) ;
 
 	algo_density = new algorithm::Density() ;
@@ -435,82 +427,38 @@ void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
 	}
 
 	unsigned long long _bcid ;
-	unsigned long long _bcid1 ;
-	unsigned long long _bcid2 ;
-	std::stringstream pname1("") ;
-	pname1 << "bcid1";
-	_bcid1 = evt->parameters().getIntVal( pname1.str() ) ;
-	std::stringstream pname2("") ;
-	pname2 << "bcid2";
-	_bcid2 = evt->parameters().getIntVal( pname2.str() ) ;
+	unsigned long long _bcid1 = evt->parameters().getIntVal("bcid1") ;
+	unsigned long long _bcid2 = evt->parameters().getIntVal("bcid2") ;
 
 	unsigned long long Shift = 16777216ULL;
 	_bcid = _bcid1*Shift + _bcid2 ;
-	streamlog_out( DEBUG ) << "event : " << _nEvt+1 << " ; bcid: " << _bcid << " ; hitTime: " << hitTime <<std::endl;
-	evtTime = _bcid - hitTime ;
-}
+	streamlog_out( DEBUG ) << "event : " << _nEvt+1 << " ; bcid: " << _bcid << " ; hitTime: " << hitTime << std::endl ;
 
-void AnalysisProcessor::findSpillEventTime(LCEvent* evt , LCCollection* _col)
-{
-	unsigned long long _bcid;
-	unsigned long long _bcid1;
-	unsigned long long _bcid2;
-	std::stringstream pname1("");
-	pname1 << "bcid1";
-	_bcid1=evt->parameters().getIntVal(pname1.str());
-	std::stringstream pname2("");
-	pname2 << "bcid2";
-	_bcid2=evt->parameters().getIntVal(pname2.str());
+	if ( firstBCIDOfRun == 0 )
+		firstBCIDOfRun = _bcid ;
 
-	unsigned long long Shift=16777216ULL;
-	_bcid=_bcid1*Shift+_bcid2; //trigger time
+	evtTime = _bcid - firstBCIDOfRun + hitTime ;
 
-	unsigned int hitTime = 0 ;
-	EVENT::CalorimeterHit* hit=NULL;
-	if (_col->getNumberOfElements()!=0)
-	{
-		try
-		{
-			hit = dynamic_cast<EVENT::CalorimeterHit*>( _col->getElementAt(0) ) ;
-			hitTime = uint( hit->getTime() ) ;
+	streamlog_out( DEBUG ) << "event time (s) : " << evtTime*200e-9 << std::endl ;
 
-		}
-		catch (std::exception e)
-		{
-			std::cout<<"No hits "<<std::endl;
-			return ;
-		}
-	}
 
 	//_bcidRef = absolute bcid of 1st pysical event in spill
-	if(_prevBCID==0)
+	if ( _prevBCID == 0 )
 	{
-		spillEvtTime=_bcid;
-		_bcidRef=0;
+		spillEvtTime = _bcid - firstBCIDOfRun + hitTime ;
+		_bcidRef = _bcid ;
 		streamlog_out( DEBUG ) << "event : " << _nEvt+1
 							   << " ; first event time : " << spillEvtTime
 							   << " ; first reference : " << _bcidRef
 							   << std::endl;
-		if(numElements<400)
-		{
-			firstShowerInSpill=0;
-			firstSpillEvtFound=false;
-		}
 	}
-	else if( (_bcid-_prevBCID)*200 < _timeCut )
+	else if ( (_bcid-_prevBCID)*200 < _timeCut )
 	{
-		spillEvtTime=_bcid-_bcidRef;
+		spillEvtTime = _bcid - _bcidRef + hitTime ;
 		streamlog_out( DEBUG ) << "event : " << _nEvt+1
 							   << " ; reference : " << _bcidRef
 							   << " ; time to the spill start : " << spillEvtTime
 							   << std::endl;
-		if(firstSpillEvtFound==false&&numElements>400)
-		{
-			firstShowerInSpill=1;
-			firstSpillEvtFound=true;
-		}
-		else
-			firstShowerInSpill=0;
 	}
 	else
 	{
@@ -521,16 +469,10 @@ void AnalysisProcessor::findSpillEventTime(LCEvent* evt , LCCollection* _col)
 							   << " ; New reference : " << _bcidRef
 							   << " ; time to the spill start : " << spillEvtTime
 							   << std::endl;
-		if(numElements>400)
-		{
-			firstShowerInSpill=1;
-			firstSpillEvtFound=true;
-		}
-		else{
-			firstShowerInSpill=0;
-			firstSpillEvtFound=false;
-		}
 	}
+
+	streamlog_out( DEBUG ) << "spill event time (s) : " << spillEvtTime*200e-9 << std::endl ;
+
 	_prevBCID = _bcid ;
 }
 
@@ -640,8 +582,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 	for ( int i = 0 ; i < _nActiveLayers ; ++i )
 		hitMap.insert( {i , {}} ) ;
 
-	UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder("M:3,S-1:3,I:9,J:9,K-1:6") ;
-
 
 	for (unsigned int i(0); i < _hcalCollections.size() ; ++i)
 	{
@@ -649,6 +589,8 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 		try
 		{
 			col = evt->getCollection( _hcalCollections[i].c_str() ) ;
+
+			UTIL::CellIDDecoder<EVENT::CalorimeterHit> IDdecoder(col) ;
 			numElements = col->getNumberOfElements();
 
 			int NHIT = 0 ;
@@ -656,7 +598,9 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			{
 				CalorimeterHit* hit = dynamic_cast<CalorimeterHit*>( col->getElementAt( j ) ) ;
 				CLHEP::Hep3Vector vec(hit->getPosition()[0],hit->getPosition()[1],hit->getPosition()[2]);
-				int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
+
+								int cellID[] = { static_cast<int>( IDdecoder(hit)["I"]) , static_cast<int>( IDdecoder(hit)["J"]) , static_cast<int>( IDdecoder(hit)["K-1"]) } ;
+//				int cellID[] = { static_cast<int>( IDdecoder(hit)["x"]) + 48 , static_cast<int>( IDdecoder(hit)["y"]) + 48 , static_cast<int>( IDdecoder(hit)["layer"]) } ;
 
 				if ( cellID[2] >= _nActiveLayers )
 					continue ;
@@ -664,6 +608,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				if ( cellID[0] < 1 || cellID[0] > 96 || cellID[1] < 1 || cellID[1] > 96 )
 					continue ;
 
+				vec = CLHEP::Hep3Vector( cellID[0]*10.408 , cellID[1]*10.408 , (cellID[2]+1)*26.131f ) ;
 				caloobject::CaloHit* aHit = new caloobject::CaloHit( cellID , vec , hit->getEnergy() , hit->getTime() , posShift ) ;
 				hitMap.at(cellID[2]).push_back(aHit) ;
 				NHIT++ ;
@@ -677,7 +622,6 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			}
 
 			findEventTime(evt,col) ;
-			findSpillEventTime(evt,col) ;
 
 			cerenkovTag = evt->parameters().getIntVal( "cerenkovTag" ) ;
 
@@ -696,7 +640,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			shower->computePCA() ;
 			shower->computeThrust() ;
-			shower->computeInteraction() ;
+			//			shower->computeInteraction() ;
 			shower->computeProfile() ;
 
 			nHit = shower->getNHits().at(0) ;
@@ -718,6 +662,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			jVec.clear() ;
 			kVec.clear() ;
 			thrVec.clear() ;
+			timeVec.clear() ;
 
 			for ( HitVec::const_iterator it = shower->getHits().begin() ; it != shower->getHits().end() ; ++it )
 			{
@@ -725,12 +670,13 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 				jVec.push_back( (*it)->getCellID()[1] ) ;
 				kVec.push_back( (*it)->getCellID()[2] ) ;
 				thrVec.push_back( (*it)->getEnergy() ) ;
+				timeVec.push_back( (*it)->getTime() ) ;
 			}
 
-			if ( !shower->getFirstIntCluster() )
-				begin = -10 ;
-			else
-				begin = shower->getFirstIntCluster()->getLayerID() ;
+			//			if ( !shower->getFirstIntCluster() )
+			//				begin = -10 ;
+			//			else
+			//				begin = shower->getFirstIntCluster()->getLayerID() ;
 
 			_end = shower->getLastClusterLayer() ;
 
@@ -773,35 +719,47 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 
 			nMipCluster = static_cast<int>( clusterMipVec.size() ) ;
 
+			auto sortTrackByFirstClusterLayer = [](std::vector<caloobject::CaloTrack*>::value_type a , std::vector<caloobject::CaloTrack*>::value_type b)
+					-> bool { return a->getTrackStartingCluster()->getLayerID() < b->getTrackStartingCluster()->getLayerID() ; } ;
+			std::sort(trackVec.begin() , trackVec.end() , sortTrackByFirstClusterLayer ) ;
 			nTrack = static_cast<int>( trackVec.size() ) ;
 
 			tracksClusterSize.clear() ;
 			tracksClusterNumber.clear() ;
 
-			HitVec houghHitVec ;
+			begin = -10 ;
+			algo_InteractionFinder->SetInteractionFinderParameterSetting(m_InteractionFinderParameterSetting) ;
+			algo_InteractionFinder->Run(clusterVec ,  trackVec , shower->getThrust()) ;
+			if( algo_InteractionFinder->FindInteraction() )
+				begin = algo_InteractionFinder->getFirstInteractionCluster()->getLayerID() ;
+
+
+			std::set<caloobject::CaloHit*> houghHitSet ;
+			std::set<caloobject::CaloCluster2D*> houghClusterSet ;
 
 			for ( std::vector<caloobject::CaloTrack*>::const_iterator it = trackVec.begin() ; it != trackVec.end() ; ++it )
 			{
 				std::vector<caloobject::CaloCluster2D*> cl = (*it)->getClusters() ;
 				tracksClusterNumber.push_back( static_cast<int>( cl.size() ) ) ;
 
-				for ( std::vector<caloobject::CaloCluster2D*>::const_iterator jt = cl.begin() ; jt != cl.end() ; ++jt )
+				for ( const auto& cluster : cl )
 				{
-					houghHitVec.insert( houghHitVec.end() , (*jt)->getHits().begin() , (*jt)->getHits().end() ) ;
-					tracksClusterSize.push_back( static_cast<int>( (*jt)->getHits().size() ) ) ;
+					houghClusterSet.insert(cluster) ;
+					houghHitSet.insert( cluster->getHits().begin() , cluster->getHits().end() ) ;
+					tracksClusterSize.push_back( static_cast<int>( cluster->getHits().size() ) ) ;
 				}
 			}
 
-			nHough = static_cast<int>( houghHitVec.size() ) ;
+			nHough = static_cast<int>( houghHitSet.size() ) ;
 			nHough1 = 0 ;
 			nHough2 = 0 ;
 			nHough3 = 0 ;
 
-			for ( HitVec::const_iterator it = houghHitVec.begin() ; it != houghHitVec.end() ; ++it )
+			for ( const auto& hit : houghHitSet)
 			{
-				if ( (*it)->getEnergy() >= thresholds.at(2) )
+				if ( hit->getEnergy() >= thresholds.at(2) )
 					nHough3++ ;
-				else if ( (*it)->getEnergy() >= thresholds.at(1) )
+				else if ( hit->getEnergy() >= thresholds.at(1) )
 					nHough2++ ;
 				else
 					nHough1++ ;

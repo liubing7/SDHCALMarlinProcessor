@@ -119,7 +119,7 @@ class EfficiencyVsAngleProcessor : public Processor
 		/*------------------------------------------------------------------------------*/
 
 		/*--------------------CaloObject list to initialise--------------------*/
-		std::vector<caloobject::Layer*> layers ;
+		std::vector<caloobject::Layer*> layers {} ;
 		/*---------------------------------------------------------------------*/
 
 		std::vector<float> thresholdsFloat ;
@@ -127,20 +127,23 @@ class EfficiencyVsAngleProcessor : public Processor
 
 		/*--------------------Root output object--------------------*/
 		std::string outputRootName = "" ;
+
 		TFile* file = nullptr ;
 		TTree* tree = nullptr ;
 
+		float cosAngle = 0 ;
+		double multiplicity = 0 ;
+		double multiplicityError = 0 ;
+		std::vector<double> efficiencies {} ;
+		std::vector<double> efficienciesError {} ;
 
-		TH2D* mulAngleHist = nullptr ;
-		TH2D* eff1AngleHist = nullptr ;
-		TH2D* eff2AngleHist = nullptr ;
-		TH2D* eff3AngleHist = nullptr ;
 
-		std::vector<int> nTracksAngleVec ;
-		std::vector<double> mulAngleVec ;
-		std::vector<double> eff1AngleVec ;
-		std::vector<double> eff2AngleVec ;
-		std::vector<double> eff3AngleVec ;
+		std::vector<int> nTracksAngleVec {} ;
+		std::vector<double> mulAngleVec {} ;
+		std::vector<double> mulSquareAngleVec {} ;
+		std::vector<double> eff1AngleVec {} ;
+		std::vector<double> eff2AngleVec {} ;
+		std::vector<double> eff3AngleVec {} ;
 
 		TH2D* trackPositionHist = nullptr ;
 
@@ -148,11 +151,6 @@ class EfficiencyVsAngleProcessor : public Processor
 		int difID = 0 ;
 		int asicID = 0 ;
 		int padID = 0 ;
-		double multiplicity = 0 ;
-		double multiplicityError = 0 ;
-
-		std::vector<double> efficiencies ;
-		std::vector<double> efficienciesError ;
 
 		int nTracks = 0 ;
 
