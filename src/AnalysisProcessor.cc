@@ -430,6 +430,13 @@ void AnalysisProcessor::findEventTime(LCEvent* evt , LCCollection* _col)
 	unsigned long long _bcid1 = evt->parameters().getIntVal("bcid1") ;
 	unsigned long long _bcid2 = evt->parameters().getIntVal("bcid2") ;
 
+	if ( _bcid1 == 0 ) //simulation
+	{
+		evtTime = 0 ;
+		spillEvtTime = 0 ;
+		return ;
+	}
+
 	unsigned long long Shift = 16777216ULL;
 	_bcid = _bcid1*Shift + _bcid2 ;
 	streamlog_out( DEBUG ) << "event : " << _nEvt+1 << " ; bcid: " << _bcid << " ; hitTime: " << hitTime << std::endl ;
