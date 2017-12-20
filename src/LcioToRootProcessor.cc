@@ -155,8 +155,11 @@ void LcioToRootProcessor::processEvent(EVENT::LCEvent* evt)
 			}
 
 			particle1Vec.push_back( weightVec.at(0) ) ;
-			particle2Vec.push_back( weightVec.at(1) ) ;
-			particle3Vec.push_back( weightVec.at(2) ) ;
+
+			if ( weightVec.size() > 1 )
+				particle2Vec.push_back( weightVec.at(1) ) ;
+			if ( weightVec.size() > 2 )
+				particle3Vec.push_back( weightVec.at(2) ) ;
 		}
 	}
 
