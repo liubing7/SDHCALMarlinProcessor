@@ -216,6 +216,7 @@ class AnalysisProcessor : public Processor
 		std::vector<int> kVec = {} ;
 		std::vector<float> thrVec = {} ;
 		std::vector<float> timeVec = {} ;
+		std::vector<float> densityVec = {} ;
 
 		double emFraction = 0 ;
 

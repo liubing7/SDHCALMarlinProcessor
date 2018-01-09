@@ -289,6 +289,8 @@ void AnalysisProcessor::init()
 	tree->Branch("K" , "std::vector<int>" , &kVec) ;
 	tree->Branch("thr" , "std::vector<float>" , &thrVec) ;
 	tree->Branch("time" , "std::vector<float>" , &timeVec) ;
+	tree->Branch("hitDensity" , "std::vector<float>" , &densityVec) ;
+
 
 	tree->Branch("nHitCustom" , &nHitCustom) ;
 	tree->Branch("nHit1Custom" , &nHit1Custom) ;
@@ -670,14 +672,26 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			kVec.clear() ;
 			thrVec.clear() ;
 			timeVec.clear() ;
+			densityVec.clear() ;
 
-			for ( HitVec::const_iterator it = shower->getHits().begin() ; it != shower->getHits().end() ; ++it )
+			//density
+			HitVec hitVec ;
+			for( auto it : hitMap )
+				hitVec.insert(hitVec.end() , it.second.begin() , it.second.end() ) ;
+
+			density = algo_density->compute(hitVec) ;
+
+			auto densityPerHit = algo_density->getDensityPerHit() ;
+
+			for ( auto hit : shower->getHits() )
 			{
-				iVec.push_back( (*it)->getCellID()[0] ) ;
-				jVec.push_back( (*it)->getCellID()[1] ) ;
-				kVec.push_back( (*it)->getCellID()[2] ) ;
-				thrVec.push_back( (*it)->getEnergy() ) ;
-				timeVec.push_back( (*it)->getTime() ) ;
+				iVec.push_back( hit->getCellID()[0] ) ;
+				jVec.push_back( hit->getCellID()[1] ) ;
+				kVec.push_back( hit->getCellID()[2] ) ;
+				thrVec.push_back( hit->getEnergy() ) ;
+				timeVec.push_back( hit->getTime() ) ;
+
+				densityVec.push_back( densityPerHit.at(hit) ) ;
 			}
 
 			//			if ( !shower->getFirstIntCluster() )
@@ -782,12 +796,7 @@ void AnalysisProcessor::processEvent( LCEvent * evt )
 			first5LayersRMS = getFirst5LayersRMS() ;
 
 
-			//density
-			HitVec vec ;
-			for( std::map<int,HitVec>::const_iterator it = hitMap.begin() ; it != hitMap.end() ; ++it )
-				vec.insert(vec.end() , it->second.begin() , it->second.end() ) ;
 
-			density = algo_density->compute(vec) ;
 
 			eventNumber = _nEvt ;
 
