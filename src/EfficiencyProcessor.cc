@@ -41,8 +41,6 @@ EfficiencyProcessor::EfficiencyProcessor()
 	  layers() ,
 	  thresholdsFloat() ,
 	  thresholds() ,
-	  efficiencies() ,
-	  efficienciesError() ,
 	  position()
 {
 
@@ -349,8 +347,8 @@ void EfficiencyProcessor::init()
 	tree->Branch("EfficienciesError" , "std::vector<double>" , &efficienciesError ) ;
 
 
-	tree->Branch("Multiplicity" , &multiplicity) ;
-	tree->Branch("MultiplicityError" , &multiplicityError) ;
+	tree->Branch("Multiplicities" , "std::vector<double>" , &multiplicities) ;
+	tree->Branch("MultiplicitiesError" , "std::vector<double>" , &multiplicitiesError) ;
 	tree->Branch("Ntrack" , &nTracks) ;
 	tree->Branch("Position" , &position) ;
 
@@ -529,9 +527,9 @@ void EfficiencyProcessor::end()
 	std::vector<double> globalEff(thresholds.size() , 0.0) ;
 	std::vector<double> globalEffErr(thresholds.size() , 0.0) ;
 
-	double globalMul = 0 ;
-	double globalMulErr = 0 ;
-	int nOkLayersForMul = 0 ;
+	std::vector<double> globalMul(thresholds.size() , 0.0) ;
+	std::vector<double> globalMulErr(thresholds.size() , 0.0) ;
+	std::vector<int> nOkLayersForMul(thresholds.size() , 0) ;
 
 	for( std::vector<caloobject::Layer*>::const_iterator layIt = layers.begin() ; layIt != layers.end() ; ++layIt )
 	{
@@ -557,8 +555,8 @@ void EfficiencyProcessor::end()
 				efficiencies = padIt->second->getEfficiencies() ;
 				efficienciesError = padIt->second->getEfficienciesError() ;
 
-				multiplicity = padIt->second->getMultiplicity() ;
-				multiplicityError = padIt->second->getMultiplicityError() ;
+				multiplicities = padIt->second->getMultiplicities() ;
+				multiplicitiesError = padIt->second->getMultiplicitiesError() ;
 
 				position.clear() ;
 				position.push_back( padIt->second->getPosition().x() ) ;
@@ -577,8 +575,8 @@ void EfficiencyProcessor::end()
 			efficiencies = asicIt->second->getEfficiencies() ;
 			efficienciesError = asicIt->second->getEfficienciesError() ;
 
-			multiplicity = asicIt->second->getMultiplicity() ;
-			multiplicityError = asicIt->second->getMultiplicityError() ;
+			multiplicities = asicIt->second->getMultiplicities() ;
+			multiplicitiesError = asicIt->second->getMultiplicitiesError() ;
 
 			position.clear() ;
 			position.push_back( asicIt->second->getPosition().x() ) ;
@@ -599,8 +597,8 @@ void EfficiencyProcessor::end()
 		efficiencies = (*layIt)->getEfficiencies() ;
 		efficienciesError = (*layIt)->getEfficienciesError() ;
 
-		multiplicity = (*layIt)->getMultiplicity() ;
-		multiplicityError = (*layIt)->getMultiplicityError() ;
+		multiplicities = (*layIt)->getMultiplicities() ;
+		multiplicitiesError = (*layIt)->getMultiplicitiesError() ;
 
 		position.clear() ;
 		position.push_back( (*layIt)->getPosition().x() ) ;
@@ -609,11 +607,14 @@ void EfficiencyProcessor::end()
 
 		tree->Fill() ;
 
-		if ( efficiencies.at(0) > 0 )
+		for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
 		{
-			globalMul += multiplicity ;
-			globalMulErr += 1.0/(multiplicityError*multiplicityError) ;
-			nOkLayersForMul++ ;
+			if ( efficiencies.at(i) > 0 )
+			{
+				globalMul.at(i) += multiplicities.at(i) ;
+				globalMulErr.at(i) += 1.0/(multiplicitiesError.at(i)*multiplicitiesError.at(i)) ;
+				nOkLayersForMul.at(i) ++ ;
+			}
 		}
 
 		globalNTrack += nTracks ;
@@ -624,13 +625,14 @@ void EfficiencyProcessor::end()
 			globalEffErr.at(i) += 1.0/( efficienciesError.at(i)*efficienciesError.at(i) ) ;
 		}
 
-		std::cout << "Layer " << layerID << "        mul : " << multiplicity << " +- " << multiplicityError << std::endl ;
+		std::cout << "Layer " << layerID << "        mul : " << multiplicities.at(0) << " +- " << multiplicitiesError.at(0) << std::endl ;
 
 	} //layer loop
 
-	globalMul /= nOkLayersForMul ;
+	for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
+		globalMul.at(i) /= nOkLayersForMul.at(i) ;
 
-	std::cout << "Global mulPerLayer : " << globalMul << std::endl ;
+	std::cout << "Global mulPerLayer : " << globalMul.at(0) << std::endl ;
 
 	//global
 	layerID = -1 ;
@@ -650,9 +652,9 @@ void EfficiencyProcessor::end()
 		efficienciesError.at(i) = std::sqrt( 1.0/globalEffErr.at(i) ) ;
 	}
 
-
-	multiplicity = globalMul ;
-	multiplicityError = std::sqrt(1.0/globalMulErr) ;
+	multiplicities = globalMul ;
+	for ( unsigned int i = 0 ; i < thresholds.size() ; ++i )
+		multiplicitiesError.at(i) = std::sqrt(1.0/globalMulErr.at(i)) ;
 
 
 	position.clear() ;

@@ -141,11 +141,11 @@ class EfficiencyProcessor : public Processor
 		int asicID = 0 ;
 		int padID = 0 ;
 
-		double multiplicity = 0 ;
-		double multiplicityError = 0 ;
+		std::vector<double> multiplicities = {} ;
+		std::vector<double> multiplicitiesError = {} ;
 
-		std::vector<double> efficiencies ;
-		std::vector<double> efficienciesError ;
+		std::vector<double> efficiencies = {} ;
+		std::vector<double> efficienciesError = {} ;
 
 		int nTracks = 0 ;
 
