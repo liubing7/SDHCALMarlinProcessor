@@ -289,6 +289,7 @@ void AnalysisProcessorILD::init()
 	tree->Branch("J" , "std::vector<int>" , &jVec) ;
 	tree->Branch("K" , "std::vector<int>" , &kVec) ;
 	tree->Branch("thr" , "std::vector<int>" , &thrVec) ;
+	tree->Branch("hitDensity" , "std::vector<float>" , &densityVec) ;
 
 	_timeCut = 5e9 ; //20 sec
 	_prevBCID = 0 ;
