@@ -563,13 +563,25 @@ void AnalysisProcessorILD::processEvent( LCEvent * evt )
 			jVec.clear() ;
 			kVec.clear() ;
 			thrVec.clear() ;
+			densityVec.clear() ;
 
-			for ( HitVec::const_iterator it = shower->getHits().begin() ; it != shower->getHits().end() ; ++it )
+			//density
+			HitVec hitVec ;
+			for( auto it : hitMap )
+				hitVec.insert(hitVec.end() , it.second.begin() , it.second.end() ) ;
+
+			density = algo_density->compute(hitVec) ;
+
+			auto densityPerHit = algo_density->getDensityPerHit() ;
+
+			for ( auto hit : shower->getHits() )
 			{
-				iVec.push_back( (*it)->getCellID()[0] ) ;
-				jVec.push_back( (*it)->getCellID()[1] ) ;
-				kVec.push_back( (*it)->getCellID()[2] ) ;
-				thrVec.push_back( (*it)->getEnergy() ) ;
+				iVec.push_back( hit->getCellID()[0] ) ;
+				jVec.push_back( hit->getCellID()[1] ) ;
+				kVec.push_back( hit->getCellID()[2] ) ;
+				thrVec.push_back( hit->getEnergy() ) ;
+
+				densityVec.push_back( densityPerHit.at(hit) ) ;
 			}
 
 			if ( !shower->getFirstIntCluster() )
@@ -645,13 +657,6 @@ void AnalysisProcessorILD::processEvent( LCEvent * evt )
 
 			first5LayersRMS = getFirst5LayersRMS() ;
 
-
-			//density
-			HitVec vec ;
-			for( std::map<int,HitVec>::const_iterator it = hitMap.begin() ; it != hitMap.end() ; ++it )
-				vec.insert(vec.end() , it->second.begin() , it->second.end() ) ;
-
-			density = algo_density->compute(vec) ;
 
 			eventNumber = _nEvt ;
 

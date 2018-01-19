@@ -192,6 +192,7 @@ class AnalysisProcessorILD : public Processor
 		std::vector<int> jVec ;
 		std::vector<int> kVec ;
 		std::vector<int> thrVec ;
+		std::vector<float> densityVec = {} ;
 
 		double emFraction = 0 ;
 
