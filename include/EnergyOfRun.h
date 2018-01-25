@@ -27,6 +27,16 @@ float energyOfRun(int nRun)
 	runMap.insert( std::make_pair(728359 , 50) ) ;
 	runMap.insert( std::make_pair(728360 , 85) ) ;
 
+	//pions SPS Nov2012 H2
+	runMap.insert( std::make_pair(716321 , 10) ) ;
+	runMap.insert( std::make_pair(716315 , 20) ) ;
+	runMap.insert( std::make_pair(716308 , 30) ) ;
+	runMap.insert( std::make_pair(716307 , 40) ) ;
+	runMap.insert( std::make_pair(716305 , 50) ) ;
+	runMap.insert( std::make_pair(716298 , 60) ) ;
+	runMap.insert( std::make_pair(716290 , 70) ) ;
+	runMap.insert( std::make_pair(716319 , 80) ) ;
+
 	//pions SPS Oct2015
 	//163
 	runMap.insert( std::make_pair(730716 , 10) ) ;
