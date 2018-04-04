@@ -22,8 +22,8 @@ if __name__ == '__main__' :
 
 	inputDir = '/home/liu/files/DATA/TRIVENT/SPS_Sep2017'
 
-	inputFile = 'TDHCAL_' + runNumber
-	fileList = [ inputFile ]
+	inputFile = 'TDHCAL_' + runNumber + '.slcio'
+	fileList = [ inputDir + '/' + inputFile ]
 
 	a = ap.Params()
 	a.collectionName = 'SDHCAL_HIT'
